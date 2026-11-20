@@ -3,6 +3,13 @@
 Every departure from the plan, newest first. Each entry gives the date, what changed, why, and how the
 analysis is affected.
 
+## 2026-11-20 - Colab setup cell: import path (after `prereg-v1`, no effect on experiments)
+- The first setup cell installs the package and the next cell imports it in the same kernel. Colab's kernel
+  did not see the new install, and `/content/outbreak` (the repo folder) shadowed the package name, so
+  `outbreak.colab` failed to import.
+- The setup cell now puts `src/` on `sys.path` and drops any stale `outbreak` module.
+- This affects notebook setup only. No experiment code, config or analysis changed.
+
 ## 2026-11-20 - Workspace scripts could reach the public internet (fixed before `prereg-v1`)
 - **How it was found.** CI on GitHub's runners. The network-isolation test passed in the development sandbox,
   which has no direct internet, but failed on machines that do: GitHub runners, and also Colab.
