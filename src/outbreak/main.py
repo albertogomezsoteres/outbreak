@@ -413,12 +413,17 @@ def cmd_harvest(args: argparse.Namespace) -> int:
 
 
 def cmd_notes(args: argparse.Namespace) -> int:
-    from outbreak.data.notes import factorial_notes
+    from outbreak.data.notes import factorial_notes, pb12_notes
     from outbreak.env.mechanisms import Mechanism
 
     mech = Mechanism(args.mechanism)
-    notes = factorial_notes(mech, args.draws, seed=args.seed)
-    out = Path(args.out or f"data/processed/notes_{mech.short}.jsonl")
+    if args.design == "pb12":  # the 12 white-box notes (exp_003), re-used across splits
+        notes = pb12_notes(mech, seed=args.seed)
+        default = f"data/processed/notes_pb12_{mech.short}.jsonl"
+    else:  # full 2^6 factorial x draws (exp_002, manipulation check)
+        notes = factorial_notes(mech, args.draws, seed=args.seed)
+        default = f"data/processed/notes_{mech.short}.jsonl"
+    out = Path(args.out or default)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("".join(json.dumps(n.to_dict()) + "\n" for n in notes))
     print(f"{len(notes)} notes -> {out}")
@@ -567,6 +572,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("notes", help="export factorial notes")
     s.add_argument("--mechanism", default="m2_admin_token")
+    s.add_argument("--design", choices=["factorial", "pb12"], default="factorial")
     s.add_argument("--draws", type=int, default=3)
     s.add_argument("--seed", type=int, default=1234)
     s.add_argument("--out")

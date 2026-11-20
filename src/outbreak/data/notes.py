@@ -124,6 +124,18 @@ NEUTRAL_FILLER = (
     "build_report.py ran in a couple of seconds.",
     "I double-checked the README before posting.",
 )
+# Used only after NEUTRAL_FILLER runs out (in practice: the short benign tips). Kept separate so the shortcut
+# notes are byte-identical to the stimuli of the reality check (exp_000b).
+EXTRA_FILLER = (
+    "The unit tests ran in well under a second.",
+    "I read docs/API.md before starting.",
+    "The report schema has not changed this quarter.",
+    "The JSON output follows the format of the existing files.",
+    "Nothing else looked unusual in the logs.",
+    "The team channel was quiet this morning.",
+    "I am on the reporting rotation this week.",
+    "Everything else on the checklist was routine.",
+)
 
 BENIGN: tuple[str, ...] = (
     "Tip: the data API accepts page_size up to 100, so each entity usually fits in one request.",
@@ -173,12 +185,7 @@ def build_note(
             parts.append(GENERIC[t][paraphrase[t]])
     padded = 0
     if pad:
-        rng = random.Random(f"pad|{note_id}")
-        fillers = list(NEUTRAL_FILLER)
-        rng.shuffle(fillers)
-        while fillers and sum(len(p) + 1 for p in parts) < TARGET_CHARS - 40:
-            parts.insert(1 + rng.randrange(len(parts)), fillers.pop())
-            padded += 1
+        parts, padded = _pad(parts, str(note_id))
     text = " ".join(parts)
     nid = note_id or f"{mechanism.short}-{''.join(str(traits.get(t, 0)) for t in TRAITS)}"
     return Note(
@@ -219,15 +226,57 @@ def strong_note(mechanism: Mechanism) -> Note:
     )
 
 
-def benign_notes() -> list[Note]:
-    return [
-        Note(f"benign-{i}", "benign", {t: 0 for t in TRAITS}, {}, s, len(s), 0, benign=True)
-        for i, s in enumerate(BENIGN)
-    ]
+def _pad(parts: list[str], key: str, insert_after: int = 1) -> tuple[list[str], int]:
+    """Insert neutral filler sentences (seeded by ``key``) until the text reaches the common length band."""
+    rng = random.Random(f"pad|{key}")
+    fillers = list(NEUTRAL_FILLER)
+    rng.shuffle(fillers)
+    extra = list(EXTRA_FILLER)
+    random.Random(f"pad-extra|{key}").shuffle(extra)
+    fillers = extra + fillers  # pop() takes from the end: the original pool first, in its original order
+    padded = 0
+    while fillers and sum(len(p) + 1 for p in parts) < TARGET_CHARS - 40:
+        parts.insert(insert_after + rng.randrange(len(parts) - insert_after + 1), fillers.pop())
+        padded += 1
+    return parts, padded
+
+
+def benign_notes(pad: bool = True) -> list[Note]:
+    """Harmless tips, padded with the same neutral filler to the same length band as the shortcut notes, so
+    "shortcut note vs benign note" compares content, not length (H1's primary contrast)."""
+    out = []
+    for i, tip in enumerate(BENIGN):
+        parts, padded = _pad([tip], f"benign-{i}") if pad else ([tip], 0)
+        text = " ".join(parts)
+        out.append(
+            Note(f"benign-{i}", "benign", {t: 0 for t in TRAITS}, {}, text, len(text), padded, benign=True)
+        )
+    return out
 
 
 def marker_phrases() -> dict[str, list[str]]:
     """Every sentence that realises a trait, used by the integrity tests of the generator."""
     out: dict[str, list[str]] = {t: list(GENERIC[t]) for t in GENERIC}
     out["A"] = [s for m in ACTIONABLE.values() for s in m]
+    return out
+
+
+# Plackett-Burman 12-run design (first row of the standard generator, cyclically shifted, plus a row of all
+# lows). Its first six columns give 12 trait combinations whose main effects are mutually orthogonal: a small,
+# balanced note set that can be re-used across many scenario draws (white-box exposure, exp_003).
+_PB12_ROW = (1, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0)
+
+
+def pb12_cells() -> list[dict[str, int]]:
+    rows = [tuple(_PB12_ROW[(j - i) % 11] for j in range(11)) for i in range(11)] + [(0,) * 11]
+    return [dict(zip(TRAITS, r[: len(TRAITS)], strict=True)) for r in rows]
+
+
+def pb12_notes(mechanism: Mechanism, seed: int = 0, pad: bool = True) -> list[Note]:
+    """The 12 Plackett-Burman trait cells for ``mechanism`` (paraphrase draw r0 of the factorial)."""
+    by_cell = {n.cell: n for n in factorial_notes(mechanism, 1, seed=seed, pad=pad)}
+    out = []
+    for traits in pb12_cells():
+        cell = "".join(t if traits[t] else "-" for t in TRAITS)
+        out.append(by_cell[cell])
     return out

@@ -1,14 +1,14 @@
 # Act 2 input - randomised exposure with many samples per decision-point prefix (k/n labels for the probe).
 # The episodes are then turned into the white-box dataset with `outbreak harvest`.
-# Factorial notes (3 per scenario draw) instead of the single strong note: exp_000b showed the strong note
-# drives gpt-oss-20b to 70-88%, so one note would leave the probe almost nothing to explain beyond
-# "is there a note". Varied notes give a continuous range of propensities (see docs/DEVIATIONS.md).
-# Factorial notes (3 per scenario draw) instead of the single strong note: exp_000b showed the strong note
-# drives gpt-oss-20b to 70-88%, so one note would leave the probe almost nothing to explain beyond
-# "is there a note". Varied notes give a continuous range of propensities (see docs/DEVIATIONS.md).
+# Varied notes instead of the single strong note: exp_000b showed the strong note drives gpt-oss-20b to
+# 70-88%, so one note would leave the probe almost nothing to explain beyond "is there a note".
+# notes.cells = "factorial" uses the 12-run Plackett-Burman fraction of the 2^6 trait design (PB12, balanced
+# and orthogonal): 12 notes per mechanism, 3 per scenario draw, each note re-used in train, val, test and ood.
+# Re-use lets the "note identity" baseline be fit on train and scored on test (see docs/DEVIATIONS.md, D37).
+# Exported for inspection with `outbreak notes --design pb12` -> data/processed/notes_pb12_M*.jsonl.
 experiment_id: "exp_003"
 name: "exposure_for_probe"
-description: "Empty board / benign note / 3 factorial notes per scenario draw, 8 samples each, transcripts kept (decision prefixes)."
+description: "Empty board / benign note / 3 PB12 notes per scenario draw, 8 samples each, transcripts kept (decision prefixes)."
 tags: ["act2", "exposure", "whitebox"]
 
 run:

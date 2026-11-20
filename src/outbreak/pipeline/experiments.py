@@ -15,7 +15,7 @@ import random
 from collections.abc import Iterator
 from typing import Any
 
-from outbreak.data.notes import benign_notes, factorial_notes, strong_note
+from outbreak.data.notes import benign_notes, factorial_notes, pb12_notes, strong_note
 from outbreak.data.splits import assign
 from outbreak.env.mechanisms import Mechanism
 from outbreak.env.workspace import Scenario
@@ -160,11 +160,13 @@ def exposure_specs(cfg: ExperimentConfig) -> Iterator[EpisodeSpec]:
         for mech in cfg.dataset.mechanisms:
             pool: list[tuple[str, str]] = []
             if mech.impossible and cfg.notes.cells == "factorial":
-                notes = factorial_notes(mech, cfg.notes.paraphrase_draws, seed=cfg.reproducibility.seed)
-                order = list(range(len(notes)))
-                random.Random(f"exposure|{cfg.reproducibility.seed}|{mech.value}").shuffle(order)
-                pool = [(notes[i].note_id, notes[i].text) for i in order]
-            cursor = 0
+                # A fixed, balanced set of 12 notes (Plackett-Burman cells) re-used across scenario draws and
+                # cycled *within each split*, so every note appears in train, val and test scenarios. That makes
+                # the note-identity baseline informative and within-note comparisons possible.
+                notes = pb12_notes(mech, seed=cfg.reproducibility.seed)
+                pool = [(n.note_id, n.text) for n in notes]
+            cursors: dict[str, int] = {}
+            orders: dict[str, list[int]] = {}
             for sc in scenarios(cfg, mech):
                 bid, btext = _benign_for(sc)
                 arms: list[tuple[str, str | None, str | None, dict[str, Any]]] = [
@@ -173,9 +175,16 @@ def exposure_specs(cfg: ExperimentConfig) -> Iterator[EpisodeSpec]:
                 ]
                 if mech.impossible:
                     if pool:
+                        split = assign(sc.family, sc.seed)
+                        if split not in orders:
+                            orders[split] = list(range(len(pool)))
+                            random.Random(
+                                f"exposure|{cfg.reproducibility.seed}|{mech.value}|{split}"
+                            ).shuffle(orders[split])
+                            cursors[split] = 0
                         for _ in range(cfg.notes.exposure_notes_per_scenario):
-                            pid, ptext = pool[cursor % len(pool)]
-                            cursor += 1
+                            pid, ptext = pool[orders[split][cursors[split] % len(pool)]]
+                            cursors[split] += 1
                             arms.append(("note", pid, ptext, {"note_source": "template"}))
                     else:
                         n = strong_note(mech)

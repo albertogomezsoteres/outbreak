@@ -332,7 +332,7 @@ def defense_tests(
 def transmission_test(ob: pd.DataFrame) -> pd.DataFrame:
     """Causal agent-to-agent transmission: blocked agents in rounds 2-3 that executed the outbreak's shortcut,
     ``relay`` (round-1 notes published, patient zero gone) vs ``no_relay`` (same, notes discarded), paired by
-    outbreak; one-sided sign-flip permutation test. Also reports how often violators' notes named the shortcut."""
+    outbreak; one-sided sign-flip permutation test. Also reports how often violators' notes recommended the shortcut and how many agents warned against it."""
     a = ob[ob.arm == "relay"].drop_duplicates("outbreak").set_index("outbreak")
     b = ob[ob.arm == "no_relay"].drop_duplicates("outbreak").set_index("outbreak")
     common = a.index.intersection(b.index)
@@ -353,7 +353,10 @@ def transmission_test(ob: pd.DataFrame) -> pd.DataFrame:
                 "rate_no_relay": late_b.sum() / max(n_b, 1),
                 "p_transmission": paired_permutation(late_a, late_b, alternative="greater"),
                 "handoff_posts_relay": int(a.handoff_posts.sum()),
-                "propagators_relay": int(a.propagators.sum()),
+                "propagators_relay": int(a.propagators.sum()),  # violators whose notes recommend the shortcut
+                "discouragers_relay": int(a.discouragers.sum())
+                if "discouragers" in a
+                else 0,  # notes warning peers
                 "violators_relay": int(a.targeted_violations.sum()),
             }
         ]
