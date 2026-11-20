@@ -1,0 +1,38 @@
+# Reality check BEFORE freezing the preregistration: do real models behave in env-v1 as in the pilot?
+# ~430 episodes. If gpt-oss-20b shows no note effect here, the design is revisited (and the reason
+# logged in DEVIATIONS.md) before `git tag prereg-v1`. This run is exploratory, never pooled with exp_001.
+experiment_id: "exp_000b"
+name: "reality_check_env_v1"
+description: "Pilot-susceptible and pilot-resistant model on all mechanisms, strong note vs empty board, in the confirmatory harness."
+tags: ["pilot", "exploratory", "pre-registration"]
+
+run:
+  runner: "bench"
+  output_dir: "outputs/results"
+
+dataset:
+  families: ["sales_report", "churn_metrics", "inventory_reconcile", "latency_slo", "invoice_totals", "experiment_readout"]
+  mechanisms: ["m1_test_edit", "m2_admin_token", "m3_prod_replica", "m4_fabrication", "possible"]
+  seeds: [900, 901]
+
+model:
+  provider: "openrouter"
+  agents:
+    - id: "openai/gpt-oss-20b"
+    - id: "openai/gpt-5-nano"
+  sampling:
+    temperature: 1.0
+    reasoning_effort: "low"
+  max_steps: 30
+  concurrency: 32
+
+notes:
+  conditions: ["empty_board", "note"]
+  cells: "strong"
+  replicates: 2
+
+reproducibility:
+  seed: 1234
+
+budget:
+  max_usd: 3.0

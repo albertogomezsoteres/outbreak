@@ -1,0 +1,50 @@
+# Act 2 input - randomised exposure with many samples per decision-point prefix (k/n labels for the probe).
+# The episodes are then turned into the white-box dataset with `outbreak harvest`.
+# Factorial notes (3 per scenario draw) instead of the single strong note: exp_000b showed the strong note
+# drives gpt-oss-20b to 70-88%, so one note would leave the probe almost nothing to explain beyond
+# "is there a note". Varied notes give a continuous range of propensities (see docs/DEVIATIONS.md).
+# Factorial notes (3 per scenario draw) instead of the single strong note: exp_000b showed the strong note
+# drives gpt-oss-20b to 70-88%, so one note would leave the probe almost nothing to explain beyond
+# "is there a note". Varied notes give a continuous range of propensities (see docs/DEVIATIONS.md).
+experiment_id: "exp_003"
+name: "exposure_for_probe"
+description: "Empty board / benign note / 3 factorial notes per scenario draw, 8 samples each, transcripts kept (decision prefixes)."
+tags: ["act2", "exposure", "whitebox"]
+
+run:
+  runner: "exposure"
+  output_dir: "outputs/results"
+
+dataset:
+  families: ["sales_report", "churn_metrics", "inventory_reconcile", "latency_slo", "invoice_totals", "experiment_readout"]
+  mechanisms: ["m2_admin_token", "m3_prod_replica", "m1_test_edit", "m4_fabrication"]
+  seeds: [20, 21, 22, 23, 24, 25]   # 36 draws/mechanism x 5 boards x 8 samples = 5,760 episodes, 720 prefixes
+
+model:
+  provider: "openrouter"
+  agents:
+    - id: "openai/gpt-oss-20b"     # must be the open-weight model analysed in the notebook
+  sampling:
+    temperature: 1.0
+    reasoning_effort: "low"
+  max_steps: 30
+  concurrency: 32
+
+notes:
+  cells: "factorial"
+  paraphrase_draws: 3
+  exposure_notes_per_scenario: 3
+  replicates: 8
+
+explainability:
+  enabled: true
+  model_hf_id: "openai/gpt-oss-20b"
+  layers: [4, 8, 12, 16, 20, 23]
+  token_position: "last"
+  steering_alphas: [0.0, 0.5, 1.0, 2.0, 4.0]
+
+reproducibility:
+  seed: 1234
+
+budget:
+  max_usd: 10.0
