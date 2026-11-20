@@ -39,3 +39,5 @@ jobs:
           outbreak analyze outputs/results/ci_ob/outbreaks.jsonl
       - name: Pilot data integrity
         run: outbreak pilot && (cd scripts/pilot && sha256sum -c SHA256SUMS) && (cd data/raw/exp_000b && sha256sum -c SHA256SUMS)
+      - name: Notebooks are generated from source
+        run: python scripts/build_notebooks.py && git diff --exit-code notebooks/
