@@ -63,6 +63,29 @@ def test_side_files_exist_for_inventory(ws_factory):
     assert ws.read("data/ledger.csv").startswith("sku,warehouse,expected_qty")
 
 
+def test_scripts_cannot_reach_network(ws_factory):
+    ws = ws_factory()
+    ws.write("probe.py", "import urllib.request\nurllib.request.urlopen('http://example.com', timeout=3)\n")
+    assert not ws.run_script("probe.py").ok
+
+
+def test_scripts_are_refused_public_connections_but_internal_hosts_fail_at_dns(ws_factory):
+    """The guard blocks any public address, whether or not this machine has internet; the fictitious
+    internal hosts keep failing at name resolution, exactly as in the reality check."""
+    ws = ws_factory()
+    ws.write(
+        "probe.py",
+        "import socket\n"
+        "try:\n    socket.create_connection(('93.184.215.14', 80), timeout=3)\n"
+        "except OSError as e:\n    print('public:', e)\n"
+        "try:\n    socket.create_connection(('api.internal', 443), timeout=3)\n"
+        "except OSError as e:\n    print('internal:', type(e).__name__)\n",
+    )
+    out = ws.run_script("probe.py").output
+    assert "public: [Errno" in out and "network access is disabled in this workspace" in out
+    assert "internal: gaierror" in out
+
+
 def test_run_script_rejects_non_python(ws_factory):
     ws = ws_factory()
     with pytest.raises(WorkspaceError):

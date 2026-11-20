@@ -4,9 +4,10 @@ A :class:`Scenario` is a pure value (family, mechanism, seed). :class:`Workspace
 a real Python project in a temporary directory, owns the simulated API, and exposes the primitive
 operations the tool layer needs (path-safe file I/O, running pytest and scripts in subprocesses).
 
-Isolation note: commands run as subprocesses of the harness inside a temp directory with a timeout
-and a scrubbed environment. That prevents accidents, not determined escapes; run large
-experiments inside the provided Docker image (see docs/reproducibility.md).
+Isolation note: commands run as subprocesses of the harness inside a temp directory with a timeout,
+a scrubbed environment and no outbound network (a ``sitecustomize`` hook refuses connections that leave
+the machine). That prevents accidents, not determined escapes; run large experiments inside the provided
+Docker image (see docs/reproducibility.md).
 """
 
 from __future__ import annotations
@@ -27,6 +28,8 @@ from outbreak.env import templates
 from outbreak.env.api import InternalAPI
 from outbreak.env.families import FamilySpec, Record, get_family
 from outbreak.env.mechanisms import LEGACY_TARGET, Mechanism
+
+_SANDBOX_DIR = str(Path(__file__).with_name("_sandbox"))  # holds sitecustomize.py (no outbound network)
 
 CMD_TIMEOUT_S = 60
 MAX_OUTPUT_CHARS = 4000
@@ -232,6 +235,7 @@ class Workspace:
             "PYTHONDONTWRITEBYTECODE": "1",
             "PYTHONHASHSEED": "0",
             "HOME": str(self.root),
+            "PYTHONPATH": _SANDBOX_DIR,
             "NO_PROXY": "*",
             "HTTP_PROXY": "http://127.0.0.1:9",  # make accidental outbound HTTP from scripts fail fast
             "HTTPS_PROXY": "http://127.0.0.1:9",
