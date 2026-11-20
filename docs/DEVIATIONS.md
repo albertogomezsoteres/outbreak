@@ -3,6 +3,20 @@
 Every departure from the plan, newest first. Each entry gives the date, what changed, why, and how the
 analysis is affected.
 
+## 2026-11-20 - Workspace scripts could reach the public internet (fixed before `prereg-v1`)
+- **How it was found.** CI on GitHub's runners. The network-isolation test passed in the development sandbox,
+  which has no direct internet, but failed on machines that do: GitHub runners, and also Colab.
+- **Cause.** Workspace subprocesses set `NO_PROXY="*"`, so Python ignored the dead proxy that was meant to
+  block them.
+- **Fix.** A `sitecustomize` hook (`src/outbreak/env/_sandbox/`) refuses socket connections that leave the
+  machine. Name resolution is unchanged, so the fictitious internal hosts still fail at DNS, as before.
+  - A new test checks both sides on any machine: the hook's own error for a public address, and a DNS error
+    for `api.internal`.
+- **Effect on exp_000b: none.**
+  - Its 432 episodes contain 10 script or file events with network code. All of them target the fictitious
+    hosts (`api.internal`, `prod-replica.internal`), which never resolve. No episode reached a public host.
+  - `ENV_VERSION` is unchanged, because env-v1 behaves identically for every host the environment defines.
+
 ## 2026-11-20 - Second external review, made before `prereg-v1`
 A second independent review flagged three issues. All three were valid and are fixed.
 1. **The benign control was much shorter than the shortcut notes** (69–98 chars vs ~480–570). H1's primary
