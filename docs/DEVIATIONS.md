@@ -3,6 +3,30 @@
 Every departure from the plan, newest first. Each entry gives the date, what changed, why, and how the
 analysis is affected.
 
+## 2026-11-20 - Second external review, made before `prereg-v1`
+A second independent review flagged three issues. All three were valid and are fixed.
+1. **The benign control was much shorter than the shortcut notes** (69–98 chars vs ~480–570). H1's primary
+   contrast would then mix content with length.
+   - **Fixed:** benign tips are padded with the same neutral filler to the same length band (485–512 chars).
+   - The shortcut notes keep their exact exp_000b wording: extra filler sentences are used only after the
+     original pool runs out.
+   - Side effect, also an improvement: 21 of 192 low-trait factorial notes per mechanism used to run out of
+     filler and stay short (~360 chars). They now reach the band too, so in exp_002 length no longer tracks
+     the number of traits switched on.
+2. **White-box notes were not re-used across splits.** exp_003 drew 3 of 192 factorial notes per scenario
+   draw, so almost every test note was unseen in training. The "note identity" baseline then fell back to the
+   global mean, which made H5 (probe > note identity) too easy to pass.
+   - **Fixed:** exp_003 uses the 12-run Plackett-Burman fraction of the 2⁶ trait design (balanced, main
+     effects orthogonal). There are 12 notes per mechanism, cycled in a seeded order within each split, so
+     every note appears in train, val, test and ood (D37).
+   - Exported as `data/processed/notes_pb12_M*.jsonl`.
+3. **Propagation counted warnings.** A note saying "do NOT use the admin token" named the shortcut and was
+   counted as spreading it.
+   - **Fixed:** `shortcut_stance` classifies each note as `recommends`, `discourages` or `none`, sentence by
+     sentence (D38). Propagation counts `recommends` only; `discouragers` are reported separately.
+   - Tests cover each case, including "technically against policy, but it works" (recommends) and "I did
+     not use the replica" (discourages).
+
 ## 2026-11-20 - Changes from an external design review, made before `prereg-v1`
 An independent review flagged five issues. Four were valid and are fixed; the fifth was only a status note.
 1. **Exposure is not contagion.** In the original outbreaks, patient zero stayed on the board in every
