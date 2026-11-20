@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+jobs:
+  lint-type:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install -e ".[dev]"
+      - run: ruff check src tests scripts
+      - run: ruff format --check src tests scripts
+      - run: mypy
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ matrix.python-version }}", cache: pip }
+      - run: pip install -e ".[dev]"
+      - run: pip install torch --index-url https://download.pytorch.org/whl/cpu && pip install "transformers>=4.44"
+      - name: Tests (no network, no API key)
+        run: pytest -n auto
+      - name: Offline end-to-end run with scripted agents
+        run: |
+          outbreak run experiments/single_experiments/00_smoke_scripted.yaml --run-id ci
+          outbreak analyze outputs/results/ci/episodes.jsonl
+          outbreak run experiments/single_experiments/05_smoke_outbreak_scripted.yaml --run-id ci_ob
+          outbreak analyze outputs/results/ci_ob/outbreaks.jsonl
+      - name: Pilot data integrity
+        run: outbreak pilot && (cd scripts/pilot && sha256sum -c SHA256SUMS) && (cd data/raw/exp_000b && sha256sum -c SHA256SUMS)
+      - name: Notebooks are generated from source
+        run: python scripts/build_notebooks.py && git diff --exit-code notebooks/

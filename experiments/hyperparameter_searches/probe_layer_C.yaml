@@ -1,0 +1,17 @@
+# Grid for the decision-point probe, selected on validation scenarios (test scenarios touched once).
+#   outbreak search experiments/hyperparameter_searches/probe_layer_C.yaml \
+#       --activations <run>/activations_gpt-oss-20b.npz --decision-points <run>/decision_points.jsonl
+# Defense operating points are not "selected": exp_004 sweeps outbreak.thresholds and reports the full frontier.
+experiment_id: "hps_002"
+name: "probe_layer_and_C"
+description: "Layer x L2 strength for the decision-point probe on gpt-oss-20b (last-token residual stream)."
+tags: ["probe", "whitebox", "hyperparameters"]
+target: "probe"
+search:
+  method: "grid"
+  selection_metric: "val_auroc"
+  parameters:
+    layer: [4, 8, 12, 16, 20, 23]
+    C: [0.01, 0.1, 1.0]
+reproducibility:
+  seed: 1234

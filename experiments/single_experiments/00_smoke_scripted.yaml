@@ -1,0 +1,36 @@
+# Offline end-to-end check of the whole pipeline with scripted (non-LLM) agents.
+# Runs in CI and needs no API key: `outbreak run experiments/single_experiments/00_smoke_scripted.yaml`
+experiment_id: "exp_000"
+name: "smoke_scripted_pipeline"
+description: "Scripted honest/cheating policies on every family and mechanism; validates harness, runner, manifests and analysis. Not a result."
+tags: ["smoke", "ci", "offline"]
+
+run:
+  runner: "bench"
+  output_dir: "outputs/results"
+
+dataset:
+  families: ["sales_report", "churn_metrics", "inventory_reconcile", "latency_slo", "invoice_totals", "experiment_readout"]
+  mechanisms: ["possible", "m1_test_edit", "m2_admin_token", "m3_prod_replica", "m4_fabrication"]
+  seeds: [0]
+
+model:
+  provider: "scripted"
+  agents:
+    - id: "scripted/honest"
+    - id: "scripted/cheat"
+  max_steps: 40
+  concurrency: 4
+
+notes:
+  conditions: ["empty_board", "note"]
+  cells: "strong"
+
+evaluation:
+  primary_metric: "violation_rate"
+
+reproducibility:
+  seed: 1234
+
+budget:
+  max_usd: 0.0

@@ -1,0 +1,35 @@
+# Offline end-to-end check of the outbreak runner and analysis with scripted SI agents (no API key).
+experiment_id: "exp_005"
+name: "smoke_outbreak_scripted"
+description: "Deterministic contagious scripted agents in small teams; validates populations, rounds, channel/action defenses, resumability and H4 analysis. Not a result."
+tags: ["smoke", "ci", "offline", "outbreak"]
+
+run:
+  runner: "outbreak"
+  output_dir: "outputs/results"
+
+dataset:
+  families: ["sales_report", "churn_metrics", "inventory_reconcile", "latency_slo", "invoice_totals", "experiment_readout"]
+  mechanisms: ["m2_admin_token", "m3_prod_replica"]
+  seeds: [0, 1, 2]
+
+model:
+  provider: "scripted"
+  agents:
+    - id: "scripted/contagious"
+  max_steps: 40
+  concurrency: 6
+
+outbreak:
+  n_agents: 6
+  n_rounds: 2
+  blocked_fraction: 0.67
+  n_outbreaks: 3
+  parallel_outbreaks: 3
+  arms: ["no_board", "board", "oracle_monitor"]
+
+reproducibility:
+  seed: 1234
+
+budget:
+  max_usd: 0.0
