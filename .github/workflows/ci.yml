@@ -31,3 +31,11 @@ jobs:
       - run: pip install torch --index-url https://download.pytorch.org/whl/cpu && pip install "transformers>=4.44"
       - name: Tests (no network, no API key)
         run: pytest -n auto
+      - name: Offline end-to-end run with scripted agents
+        run: |
+          outbreak run experiments/single_experiments/00_smoke_scripted.yaml --run-id ci
+          outbreak analyze outputs/results/ci/episodes.jsonl
+          outbreak run experiments/single_experiments/05_smoke_outbreak_scripted.yaml --run-id ci_ob
+          outbreak analyze outputs/results/ci_ob/outbreaks.jsonl
+      - name: Pilot data integrity
+        run: outbreak pilot && (cd scripts/pilot && sha256sum -c SHA256SUMS)
