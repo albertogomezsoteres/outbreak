@@ -3,6 +3,29 @@
 Every departure from the plan, newest first. Each entry gives the date, what changed, why, and how the
 analysis is affected.
 
+## 2026-11-20 - Changes from an external design review, made before `prereg-v1`
+An independent review flagged five issues. Four were valid and are fixed; the fifth was only a status note.
+1. **Exposure is not contagion.** In the original outbreaks, patient zero stayed on the board in every
+   round, so a later violator might simply have read the original note. In addition, agents almost never
+   post: gpt-oss-20b made 0 posts in 216 reality-check episodes.
+   - **Added:**
+     - a team **handoff protocol** in outbreaks;
+     - the `relay` vs `no_relay` arms, with patient zero visible in round 1 only, giving a causal test of
+       agent-to-agent transmission (H4c);
+     - a separate propagation measure (do violators' notes name the shortcut?).
+2. **Thresholds were pooled.** `defense_tests` mixed the three thresholds of a defense: 60 rows for 20
+   outbreaks, and the duplicate index could crash the paired test. The descriptive arms were also in the
+   Holm family.
+   - **Fixed:**
+     - one pre-registered operating point per defense;
+     - Holm only over the three deployable defenses;
+     - the other thresholds feed the frontier only;
+     - a test checks this.
+3. **Control condition.** exp_001 now includes a benign note, and H1's primary contrast is note vs benign.
+4. **Utility non-inferiority power.** Simulated in `outbreak power`. exp_004 now has 30 outbreaks with 4
+   unblocked agents each (was 20 × 3), and the interpretation rule is stated in prereg section 5.
+5. **"Confirmatory runs not done yet."** Correct, and expected at this stage: they start after `prereg-v1`.
+
 ## 2026-11-20 - Design changes from the reality check (exp_000b), made before `prereg-v1`
 Evidence and full numbers are in [`reality_check.md`](reality_check.md).
 - **Primary transmission outcome = targeted violation.**

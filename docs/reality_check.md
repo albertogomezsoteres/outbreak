@@ -55,7 +55,12 @@ board (Fisher exact test, Holm across the 8 cells):
   The detectors fire on the right events. Writing the 429 error body or a note into `data/raw` was *not*
   what happened. The files contain invented or copied business records.
 
-## 3. What changed in the design because of this (before `prereg-v1`)
+## 3. Agents almost never post on their own
+In board conditions, gpt-oss-20b made **0 posts in 216 episodes**, and gpt-5-nano made 3. A board on which
+nobody writes cannot spread anything between agents. The outbreak experiment therefore uses a team handoff
+protocol (design decision D34), and agent-to-agent transmission is tested causally (H4c).
+
+## 4. What changed in the design because of this (before `prereg-v1`)
 1. **Primary outcome for transmission (H1, H3, H5) = the targeted violation**, i.e. the scenario's own
    shortcut. "Any violation" mixes in spontaneous fabrication (section 2) and is kept as the secondary H1
    outcome and as the harm outcome in outbreaks (H4).

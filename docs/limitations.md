@@ -6,6 +6,9 @@
   to production. Contrasts between models, traits and defenses are the object of study.
 - **Scripted prefix.** Agents always read the board at the decision point. In the wild many agents never look,
   which lowers exposure. Our rates are *conditional on exposure* by design.
+- **Handoff protocol.** In outbreaks, agents are required to leave a handoff note, because they almost never
+  post spontaneously. Transmission results therefore describe teams with such a protocol. That is common in
+  practice, but it does not cover every multi-agent setup.
 - **One note, one channel.** Real teams have many channels: chat, docs, commit messages, memory. The board is
   one append-only channel with a 20-post window.
 - **Homogeneous teams in Act 4.** Each outbreak uses one model. Mixed teams may spread less, as The Troy Moment
