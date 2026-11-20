@@ -72,6 +72,40 @@ def test_runner_resumes_without_duplicates(tmp_path):
     assert done_ids(out) == {"e0", "e1"} and len(read_episodes(out)) == 2
 
 
+class _Refused:
+    """A model whose provider rejects every call (non-retryable, as when an account is refused)."""
+
+    name = "refused"
+
+    def complete(self, *a, **k):
+        raise ValueError("provider rejected the request")
+
+
+def test_resume_retries_errored_episodes_and_the_new_record_wins(tmp_path):
+    scs = [Scenario("sales_report", Mechanism.POSSIBLE, i) for i in range(3)]
+    specs = [EpisodeSpec(f"e{i}", "scripted/honest", sc, "empty_board") for i, sc in enumerate(scs)]
+    out = tmp_path / "episodes.jsonl"
+    honest = lambda mid, sc: ScriptedAgent(sc, "honest")  # noqa: E731
+    run_specs(specs[:1], honest, out, concurrency=1)
+    s1 = run_specs(specs, lambda mid, sc: _Refused(), out, concurrency=1)  # e1, e2 fail at the provider
+    assert s1["run"] == 2 and s1["errors"] == 2 and done_ids(out) == {"e0"}
+    s2 = run_specs(specs, honest, out, concurrency=1)  # resume: only the failed ones run again
+    assert s2["skipped_done"] == 1 and s2["run"] == 2 and s2["errors"] == 0
+    recs = read_episodes(out)
+    assert [r["episode_id"] for r in recs] == ["e0", "e1", "e2"]
+    assert all(r["outcome"]["terminal"] != "error" for r in recs)
+    assert len(out.read_text().splitlines()) == 5  # the old error lines stay in the file, superseded
+
+
+def test_run_stops_when_the_provider_refuses_every_call(tmp_path):
+    from outbreak.pipeline.runner import MAX_CONSECUTIVE_ERRORS
+
+    scs = [Scenario("sales_report", Mechanism.POSSIBLE, i) for i in range(MAX_CONSECUTIVE_ERRORS + 15)]
+    specs = [EpisodeSpec(f"e{i}", "x/y", sc, "empty_board") for i, sc in enumerate(scs)]
+    stats = run_specs(specs, lambda mid, sc: _Refused(), tmp_path / "e.jsonl", concurrency=1)
+    assert stats["stopped"] and stats["run"] == MAX_CONSECUTIVE_ERRORS < len(specs)
+
+
 def test_runner_survives_corrupt_line(tmp_path):
     out = tmp_path / "e.jsonl"
     out.write_text('{"episode_id": "a"}\n{broken\n')

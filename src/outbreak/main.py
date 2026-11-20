@@ -113,6 +113,9 @@ def cmd_run(args: argparse.Namespace) -> int:
     )
     _wandb_log(cfg, run_id, stats, dry=args.dry_run)
     print(json.dumps(stats, indent=2, default=str))
+    if stats.get("stopped"):
+        print(f"\nRUN STOPPED: {stats['stopped']}")
+        return 1
     return 0
 
 

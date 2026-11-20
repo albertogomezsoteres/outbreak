@@ -26,6 +26,18 @@ class BudgetExceededError(RuntimeError):
     fatal = True  # tells the episode loop to abort the run instead of recording an errored episode
 
 
+class ProviderAccountError(RuntimeError):
+    """The provider refused the account itself (no credits, key limit reached, invalid key).
+
+    Every further call would fail the same way, so the run stops instead of recording errored episodes.
+    """
+
+    fatal = True
+
+
+ACCOUNT_STATUSES = {401, 402, 403}
+
+
 @dataclass
 class Budget:
     """Thread-safe spend tracker. ``max_usd`` is a hard stop checked before every uncached call."""
@@ -183,7 +195,14 @@ class OpenRouterClient:
                     503,
                     504,
                 } or "empty choices" in str(e)
+                if status in ACCOUNT_STATUSES:
+                    raise ProviderAccountError(
+                        f"OpenRouter refused the request (HTTP {status}): {e}. Check the account's credits "
+                        "and the key's limit, then re-run the same command: finished episodes are kept and "
+                        "failed ones are retried."
+                    ) from e
                 if not retryable or attempt == self.max_retries:
+                    log.warning("OpenRouter %s (status=%s), not retried: %s", type(e).__name__, status, e)
                     raise
                 sleep = delay * (1 + random.random())
                 log.warning(

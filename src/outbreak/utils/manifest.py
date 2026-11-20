@@ -46,7 +46,8 @@ def git_info(cwd: Path | None = None) -> dict[str, Any]:
     return {
         "commit": _git("rev-parse", "HEAD"),
         "branch": _git("rev-parse", "--abbrev-ref", "HEAD"),
-        "dirty": bool(_git("status", "--porcelain")),
+        # outputs/ and models/ hold run artifacts (on Colab they are links to Drive): not code changes
+        "dirty": bool(_git("status", "--porcelain", "--", ".", ":(exclude)outputs", ":(exclude)models")),
     }
 
 
