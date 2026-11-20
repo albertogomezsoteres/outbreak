@@ -57,22 +57,28 @@ class ModelFactory:
 
 
 def channel_defense(
-    arm: str, factory: ModelFactory, threshold: float, filter_path: Path = DEFAULT_FILTER_PATH
+    arm: str, factory: ModelFactory, threshold: float | None, filter_path: Path = DEFAULT_FILTER_PATH
 ) -> Callable[[str], object] | None:
+    """``threshold=None`` keeps the filter's calibrated threshold (its confirmatory operating point)."""
     if arm == "channel_judge":
-        return LLMChannelJudge(factory.judge_model(), threshold=threshold)
+        return LLMChannelJudge(factory.judge_model(), threshold=0.5 if threshold is None else threshold)
     if arm == "channel_filter":
         if not filter_path.exists():
             raise FileNotFoundError(f"{filter_path} missing: run `outbreak train-filter` first")
         f = TextFilter.load(filter_path)
-        f.threshold = threshold
+        if threshold is not None:
+            f.threshold = threshold
         return f
     return None
 
 
-def action_gate(arm: str, factory: ModelFactory, threshold: float) -> object | None:
+def action_gate(arm: str, factory: ModelFactory, threshold: float | None) -> object | None:
     if arm == "action_monitor":
-        return LLMActionMonitor(factory.judge_model(), policy="\n".join(POLICY_LINES), threshold=threshold)
+        return LLMActionMonitor(
+            factory.judge_model(),
+            policy="\n".join(POLICY_LINES),
+            threshold=0.5 if threshold is None else threshold,
+        )
     if arm == "oracle_monitor":
         return OracleGate()
     return None

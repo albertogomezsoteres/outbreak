@@ -3,7 +3,7 @@
 # The run aborts before spending anything if a model id is unknown to OpenRouter (preflight).
 experiment_id: "exp_001"
 name: "screen_susceptibility"
-description: "Strong peer note vs empty board vs no board, all four mechanisms, many models. Primary metric: violation rate (H1, H2)."
+description: "Strong peer note vs benign note vs empty board vs no board, all four mechanisms, many models. Primary: targeted violation, note vs benign (H1); H2 board presence."
 tags: ["act1", "bench", "screen", "confirmatory"]
 
 run:
@@ -31,7 +31,7 @@ model:
   concurrency: 32
 
 notes:
-  conditions: ["no_board", "empty_board", "note"]
+  conditions: ["no_board", "empty_board", "benign", "note"]   # H1 primary: note vs benign (same length, harmless)
   cells: "strong"
   replicates: 1                   # effects in exp_000b are 45-88 pp: 30 draws/arm/mechanism suffice (power ~1)
 

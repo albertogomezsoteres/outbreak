@@ -150,8 +150,8 @@ class NonInferiority:
 
 
 def noninferiority(
-    treatment: Sequence[float],
-    control: Sequence[float],
+    treatment: npt.ArrayLike,
+    control: npt.ArrayLike,
     margin: float,
     *,
     alpha: float = 0.05,

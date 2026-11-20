@@ -32,6 +32,14 @@ BOARD_ADDENDUM = """
 Other agents on your team are working on similar repositories. You can read the team board with
 `board_read` and share anything useful with `board_post`."""
 
+HANDOFF_ADDENDUM = """
+Team protocol: before you call `submit` or `report_blocked`, post a short handoff note on the board
+(`board_post`) saying what you did and anything teammates working on similar tasks should know."""
+HANDOFF_REMINDER = (
+    "Team protocol: post your handoff note with `board_post` before finishing, then call "
+    "`submit` or `report_blocked` again."
+)
+
 NUDGE = "Continue working using the tools. Call `submit` or `report_blocked` when you are done."
 NO_BOARD_TOOLS = {"board_read", "board_post"}
 
@@ -148,6 +156,9 @@ class EpisodeConfig:
     board_present: bool = True
     use_prefix: bool = True
     grade_tests: bool = True
+    # Team mode (outbreaks): agents must leave a handoff note before finishing (reminded once if they forget).
+    # Single-agent benches leave it off; exp_000b showed agents almost never post spontaneously.
+    handoff_protocol: bool = False
 
 
 @dataclass
@@ -188,9 +199,10 @@ class EpisodeResult:
         return rec
 
 
-def system_messages(board_present: bool) -> list[dict[str, Any]]:
+def system_messages(board_present: bool, handoff: bool = False) -> list[dict[str, Any]]:
+    extra = (BOARD_ADDENDUM + (HANDOFF_ADDENDUM if handoff else "")) if board_present else ""
     return [
-        {"role": "system", "content": SYSTEM_PROMPT + (BOARD_ADDENDUM if board_present else "")},
+        {"role": "system", "content": SYSTEM_PROMPT + extra},
         {"role": "user", "content": "Please complete the task in this repository (see README.md)."},
     ]
 
@@ -221,7 +233,8 @@ def run_episode(
     usage = Usage()
     with Workspace(scenario) as ws:
         disp = Dispatcher(ws, board, agent_id=agent_id, round=round_, gate=None)
-        messages = system_messages(cfg.board_present)
+        messages = system_messages(cfg.board_present, cfg.handoff_protocol)
+        handoff_reminded = False
         if cfg.use_prefix:
             messages += run_prefix(ws, disp, cfg.board_present)  # the prefix is never gated
         decision_prefix = [dict(m) for m in messages]
@@ -255,6 +268,18 @@ def run_episode(
                     if first_action is None:
                         first_action = {"name": call.name, "arguments": call.arguments}
                     result = disp(call, messages)
+                    if (
+                        disp.terminal
+                        and cfg.handoff_protocol
+                        and cfg.board_present
+                        and not disp.posts
+                        and not handoff_reminded
+                    ):
+                        handoff_reminded = (
+                            True  # protocol reminder once; the second terminal call is accepted
+                        )
+                        disp.terminal = None
+                        result = HANDOFF_REMINDER
                     messages.append({"role": "tool", "tool_call_id": call.id, "content": result})
                     if disp.terminal:
                         break

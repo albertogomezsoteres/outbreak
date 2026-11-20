@@ -63,6 +63,52 @@ def h4_power(
     )
 
 
+def ni_power(
+    n_outbreaks: int,
+    n_unblocked: int,
+    p_ref: float,
+    p_def: float,
+    *,
+    same_sample: float = 0.8,
+    margin: float = 0.05,
+    n_sims: int = 400,
+    seed: int = 0,
+) -> float:
+    """Utility non-inferiority (H4): per-outbreak legit-success rates of the unblocked agents. With common random
+    numbers an unblocked agent whose context the defense does not change gets the identical sample in both
+    arms (``same_sample`` = probability of that)."""
+    from outbreak.utils.stats import noninferiority
+
+    rng = np.random.default_rng(seed)
+    hits = 0
+    for s in range(n_sims):
+        u = rng.random((n_outbreaks, n_unblocked))
+        ref = (u < p_ref).astype(float)
+        u2 = np.where(rng.random(u.shape) < same_sample, u, rng.random(u.shape))
+        de = (u2 < p_def).astype(float)
+        hits += noninferiority(de.mean(1), ref.mean(1), margin, n_boot=500, seed=s).non_inferior
+    return hits / n_sims
+
+
+def transmission_power(
+    n_outbreaks: int, n_late_blocked: int, p_relay: float, p_none: float, *, n_sims: int = 1000, seed: int = 0
+) -> float:
+    """H4c: late-round targeted violations per outbreak, relay vs no_relay (one-sided permutation)."""
+
+    def sampler(rng: np.random.Generator) -> tuple[list[float], list[float]]:
+        return (
+            list(rng.binomial(n_late_blocked, p_relay, n_outbreaks)),
+            list(rng.binomial(n_late_blocked, p_none, n_outbreaks)),
+        )
+
+    return simulate_power(
+        sampler,
+        lambda x, y: paired_permutation(x, y, alternative="greater", n_perm=2000),
+        n_sims=n_sims,
+        seed=seed,
+    )
+
+
 def power_report(n_sims: int = 2000) -> str:
     lines = [
         "# Power (simulation)",
@@ -87,4 +133,29 @@ def power_report(n_sims: int = 2000) -> str:
     for k in (10, 20, 30):
         for red in (0.5, 0.75):
             lines.append(f"| {k} | {red:.2f} | {h4_power(k, 9, 0.3, red, n_sims=n_sims // 2):.2f} |")
+    lines += [
+        "",
+        "## H4 utility non-inferiority (margin 5 pp), 4 unblocked agents per outbreak",
+        "| outbreaks | true utility (ref → defense) | same-sample prob. | power |",
+        "|---|---|---|---|",
+    ]
+    for k in (20, 30):
+        for pr, pd_ in ((0.97, 0.97), (0.95, 0.93)):
+            for rho in (0.5, 0.8):
+                lines.append(
+                    f"| {k} | {pr:.2f} → {pd_:.2f} | {rho} | "
+                    f"{ni_power(k, 4, pr, pd_, same_sample=rho, n_sims=max(100, n_sims // 8)):.2f} |"
+                )
+    lines += [
+        "",
+        "## H4c transmission, 5 blocked agents in rounds 2-3 per outbreak",
+        "| outbreaks | P(violate) relay vs no relay | power |",
+        "|---|---|---|",
+    ]
+    for k in (20, 30):
+        for pr, pn in ((0.3, 0.05), (0.2, 0.05), (0.5, 0.1)):
+            lines.append(
+                f"| {k} | {pr:.2f} vs {pn:.2f} | "
+                f"{transmission_power(k, 5, pr, pn, n_sims=max(200, n_sims // 4)):.2f} |"
+            )
     return "\n".join(lines)

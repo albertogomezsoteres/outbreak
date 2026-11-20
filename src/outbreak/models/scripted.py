@@ -28,6 +28,7 @@ class ScriptedAgent:
         self.strategy = strategy
         self.name = f"scripted/{strategy}"
         self._plans: dict[str, Plan] = {}
+        self._last: dict[str, tuple[str, dict[str, Any]]] = {}
         self._n = 0
 
     def complete(
@@ -44,7 +45,15 @@ class ScriptedAgent:
             try:
                 name, args = self._plans[ep].send(last)
             except StopIteration:
-                name, args = "submit", {"summary": "done"}
+                # Plan finished but the episode continues (e.g. a team-protocol reminder rejected the terminal
+                # call): repeat the last terminal decision, as a model would, else submit.
+                prev = self._last.get(ep)
+                name, args = (
+                    prev
+                    if prev and prev[0] in {"submit", "report_blocked"}
+                    else ("submit", {"summary": "done"})
+                )
+        self._last[ep] = (name, args)
         self._n += 1
         return AssistantTurn(None, [ToolCall.parse(f"s{self._n}", name, args)])
 

@@ -209,9 +209,16 @@ def _run_outbreaks(cfg: Any, run_dir: Path, dry: bool) -> dict[str, Any]:
             base_seed=cfg.reproducibility.seed,
         )
         for arm in oc.arms:
-            thresholds = (
-                oc.thresholds if arm in {"channel_judge", "channel_filter", "action_monitor"} else [None]
-            )
+            thresholds: list[float | None] = [None]
+            if arm in {"channel_judge", "action_monitor"}:
+                thresholds = sorted(
+                    {
+                        *oc.thresholds,
+                        *(t for t in [cfg.evaluation.confirmatory_thresholds.get(arm)] if t is not None),
+                    }
+                )
+            elif arm == "channel_filter":  # None = calibrated threshold (confirmatory) + the swept ones
+                thresholds = [None, *oc.thresholds]
             for th in thresholds:
                 jobs.append((pop, arm, th))
     log.info("%d outbreak runs planned (%d agents each)", len(jobs), oc.n_agents)
@@ -233,10 +240,10 @@ def _run_outbreaks(cfg: Any, run_dir: Path, dry: bool) -> dict[str, Any]:
             pop,
             arm,
             lambda _aid, sc: factory(agent, sc),
-            channel_filter=channel_defense(arm, factory, th if th is not None else 0.5),  # type: ignore[arg-type]
-            gate=action_gate(arm, factory, th if th is not None else 0.5),  # type: ignore[arg-type]
+            channel_filter=channel_defense(arm, factory, th),  # type: ignore[arg-type]
+            gate=action_gate(arm, factory, th),  # type: ignore[arg-type]
             threshold=th,
-            episode_cfg=EpisodeConfig(max_steps=cfg.model.max_steps),
+            episode_cfg=EpisodeConfig(max_steps=cfg.model.max_steps, handoff_protocol=oc.handoff_protocol),
             concurrency=cfg.model.concurrency,
             keep_transcripts=True,
             experiment_id=cfg.experiment_id,
