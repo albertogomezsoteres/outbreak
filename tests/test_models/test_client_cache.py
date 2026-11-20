@@ -7,7 +7,13 @@ from types import SimpleNamespace
 
 import pytest
 
-from outbreak.models.client import Budget, BudgetExceededError, OpenRouterClient, Pricing
+from outbreak.models.client import (
+    Budget,
+    BudgetExceededError,
+    OpenRouterClient,
+    Pricing,
+    ProviderAccountError,
+)
 from outbreak.utils.cache import LLMCache, cache_key
 
 
@@ -123,3 +129,13 @@ def test_cache_is_thread_safe(tmp_path):
     for t in threads:
         t.join()
     assert len(cache) == 400
+
+
+@pytest.mark.parametrize("status", [401, 402, 403])
+def test_account_refusal_is_fatal_and_not_retried(tmp_path, status):
+    err = RuntimeError("Insufficient credits")
+    err.status_code = status  # type: ignore[attr-defined]
+    c, fake = _client(tmp_path, [err, _resp()])
+    with pytest.raises(ProviderAccountError) as exc:
+        c.complete(MSGS, [], seed=1, key="ep1:t0")
+    assert exc.value.fatal and len(fake.calls) == 1 and str(status) in str(exc.value)
