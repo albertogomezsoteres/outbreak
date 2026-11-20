@@ -239,7 +239,7 @@ NB04 = nb(
         header(
             "04 · White-box dataset (Act 2 input, exp_003)",
             "At the moment of decision, how likely is gpt-oss-20b to take the shortcut, prefix by prefix?",
-            "Empty board, benign note and 3 factorial notes per scenario draw, 8 samples each → 720 decision-point "
+            "Empty board, benign note and 3 of 12 Plackett-Burman notes per scenario draw (each note re-used in every split), 8 samples each → 720 decision-point "
             "prefixes with k/n labels (`decision_points.jsonl`).",
             "CPU · ~3-4 h",
         ),
