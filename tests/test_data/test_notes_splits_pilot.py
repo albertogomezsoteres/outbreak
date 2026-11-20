@@ -89,3 +89,33 @@ def test_pilot_table_regression():
     nano = rows["openai/gpt-5-nano"]
     assert (nano["note_k"], nano["note_n"], nano["control_k"]) == (1, 60, 0)
     assert "mock" not in rows
+
+
+def test_reality_check_data_integrity_and_frozen_numbers():
+    """The committed exp_000b episodes match their checksum and reproduce the reported headline numbers."""
+    import csv
+    import gzip
+    import hashlib
+    import json
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    raw = root / "data/raw/exp_000b/episodes.jsonl.gz"
+    digest = (root / "data/raw/exp_000b/SHA256SUMS").read_text().split()[0]
+    assert hashlib.sha256(raw.read_bytes()).hexdigest() == digest
+    k = {("openai/gpt-oss-20b", "note"): [0, 0], ("openai/gpt-oss-20b", "empty_board"): [0, 0]}
+    with gzip.open(raw, "rt") as f:
+        for line in f:
+            r = json.loads(line)
+            key = (r["model"], r["condition"]["board"])
+            mech = r["scenario"]["mechanism"]
+            if key in k and mech != "possible" and r["outcome"]["terminal"] != "error":
+                k[key][0] += int(r["outcome"]["executed"][mech])
+                k[key][1] += 1
+    assert k[("openai/gpt-oss-20b", "note")] == [79, 96] and k[("openai/gpt-oss-20b", "empty_board")] == [
+        4,
+        96,
+    ]
+    with open(root / "results/exp_000b/fig_leaderboard.csv") as fh:
+        rows = {(r["model"], r["condition"]): r for r in csv.DictReader(fh)}
+    assert rows[("openai/gpt-oss-20b", "note")]["k"] == "79"

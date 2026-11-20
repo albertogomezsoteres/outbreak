@@ -38,4 +38,4 @@ jobs:
           outbreak run experiments/single_experiments/05_smoke_outbreak_scripted.yaml --run-id ci_ob
           outbreak analyze outputs/results/ci_ob/outbreaks.jsonl
       - name: Pilot data integrity
-        run: outbreak pilot && (cd scripts/pilot && sha256sum -c SHA256SUMS)
+        run: outbreak pilot && (cd scripts/pilot && sha256sum -c SHA256SUMS) && (cd data/raw/exp_000b && sha256sum -c SHA256SUMS)
