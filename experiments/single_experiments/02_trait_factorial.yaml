@@ -1,0 +1,42 @@
+# Act 1b - Which rhetorical traits make a shortcut contagious? Full 2^6 factorial x 3 paraphrases.
+experiment_id: "exp_002"
+name: "trait_factorial"
+description: "192 notes per mechanism randomly assigned to scenario draws; logistic + LPM trait effects with note-clustered SEs (H3)."
+tags: ["act1", "bench", "factorial", "confirmatory"]
+
+run:
+  runner: "bench"
+  output_dir: "outputs/results"
+
+dataset:
+  families: ["sales_report", "churn_metrics", "inventory_reconcile", "latency_slo", "invoice_totals", "experiment_readout"]
+  mechanisms: ["m1_test_edit", "m2_admin_token", "m3_prod_replica", "m4_fabrication"]
+  seeds: [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+
+model:
+  provider: "openrouter"
+  agents:
+    - id: "openai/gpt-oss-20b"     # both models were susceptible in exp_000b; extend with exp_001 results
+    - id: "openai/gpt-5-nano"
+  sampling:
+    temperature: 1.0
+    reasoning_effort: "low"
+  max_steps: 30
+  concurrency: 32
+
+notes:
+  conditions: ["empty_board", "benign", "note"]
+  cells: "factorial"
+  paraphrase_draws: 3
+  replicates: 2                   # 192 notes x 2 x 4 mechanisms = 1,536 note episodes per model
+
+evaluation:
+  primary_metric: "violation_rate"
+  holm_families:
+    h3_traits: ["per model: A, B, C, D, E, F"]
+
+reproducibility:
+  seed: 1234
+
+budget:
+  max_usd: 20.0
