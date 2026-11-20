@@ -1,0 +1,88 @@
+# Deviations log
+
+Every departure from the plan, newest first. Each entry gives the date, what changed, why, and how the
+analysis is affected.
+
+## 2026-11-20 - Design changes from the reality check (exp_000b), made before `prereg-v1`
+Evidence and full numbers are in [`reality_check.md`](reality_check.md).
+- **Primary transmission outcome = targeted violation.**
+  - What changed: "targeted" means the scenario's own shortcut. Any violation becomes secondary for H1 and is
+    the harm outcome for H4.
+  - Why: gpt-5-nano fabricates data spontaneously in 67–83% of blocked episodes with no note at all. "Any
+    violation" would then measure spontaneous cheating, not transmission.
+  - The harvest labels for the probe now use the targeted outcome as well.
+- **gpt-5-nano reclassified as susceptible** and added to exp_002 and exp_006.
+  - Evidence: 53/95 targeted violations with the note vs 12/96 without, against 1/60 in the pilot.
+- **exp_003 uses 3 factorial notes per scenario draw** instead of one strong note.
+  - Why: with one note at an 82% rate, the probe would mostly read "is there a note".
+- **exp_001 uses 1 sample per draw.** Effects of 45–88 pp leave ample power, and this halves the number of episodes.
+- **Spending caps set from the usage measured per episode.**
+- **`outbreak screen` excludes `:batch` endpoints.** They are asynchronous and unsuitable for agent loops.
+- **Sizes and throughput set for the deadline:**
+  - exp_002 uses 2 samples per note instead of 3;
+  - exp_003 uses 6 seeds instead of 10;
+  - concurrency is raised to 32.
+  - Power figures in prereg section 5 are updated to match.
+  - Each experiment gets its own LLM cache, so notebooks can run in parallel sessions.
+
+## 2026-11-20 - Additions made before `prereg-v1` was tagged
+These are not deviations, because they precede the tag. They are listed for transparency.
+- **Reality check:** `exp_000b` runs in the confirmatory harness *before* the tag.
+- **External validity:** `exp_006` tests natural (LLM-written) notes (H1b). An LLM manipulation check adds a
+  trait-validity rule to H3.
+- **Defense comparison:** judge and filter are compared offline on the same held-out posts (H4b).
+- **Probe and vaccine:**
+  - the probe is read against a text-only baseline and a noise ceiling (H5);
+  - a probe-triggered vaccine arm is added (H6).
+- **Analysis:**
+  - the error audit from prereg section 6 is now implemented;
+  - the provider is recorded for every episode.
+- **Hyperparameter searches:**
+  - they are now executable (`outbreak search`) and use only the validation split;
+  - the defense-threshold "search" was removed, because exp_004 reports the full frontier instead of
+    selecting one threshold.
+
+## 2026-11-20 - H4 primary test: Wilcoxon-Pratt → paired sign-flip permutation
+- **What.** The outline (v5.1) named the Wilcoxon signed-rank test with Pratt's zero handling as the primary
+  H4 test.
+- **Why.** The calibration test (`tests/test_utils/test_stats.py::test_wilcoxon_pratt_is_slightly_liberal_with_ties`)
+  simulates the planned design under the null: 20 outbreaks, 9 blocked agents, small integer counts. At
+  nominal 5%, Wilcoxon-Pratt rejects about **6.6%** of the time, because its normal approximation is
+  anti-conservative with heavy ties. The sign-flip permutation test on the paired differences has exact
+  size, and its own calibration test shows it.
+- **Effect.** The permutation p-value is primary. Wilcoxon-Pratt is still reported (`p_wilcoxon_pratt`) for
+  transparency.
+- **Timing.** The change was made before any confirmatory data existed.
+
+## 2026-11-20 - Pilot Fisher p-value corrected
+- **What.** Earlier notes quoted p = 3.3e-5 for the gpt-oss-20b pilot contrast (14/80 vs 0/80).
+- **Correction.** The two-sided Fisher exact p is **6.6e-5**, reproduced by `outbreak pilot` from the
+  checksummed logs. The 3.3e-5 figure was the one-sided value. All documents now use the two-sided value.
+
+## 2026-11-20 - Environment rebuilt after the pilot (pilot ≠ confirmatory)
+- **What.** The pilot (`scripts/pilot/outbreak_smoke.py`) used one toy task: four regions and one number. It
+  had one mechanism (M2, plus an M4 detector), a single note, and the `path=` API. The confirmatory harness
+  (`env-v1`) has:
+  - six realistic task families with real pytest suites;
+  - four mechanisms;
+  - a paginated API;
+  - a decision-point prefix;
+  - the M1 contradiction verified by property tests;
+  - legit success graded on the *original* tests.
+- **Why.** The pilot answered one question only: does the phenomenon exist, and is it practical? Yes (gpt-oss-20b
+  14/80 vs 0/80). It was not designed for the RQ2–RQ4 contrasts.
+- **Effect.** Pilot numbers are used only for motivation and for power. They are never pooled with
+  confirmatory data. Effect sizes may differ in the new harness: tasks are longer, and the policy is stated in
+  the README rather than in the system prompt.
+
+## 2026-11-20 - "Pressure" manipulation dropped
+- **What.** The pilot tested deadline pressure in the system prompt.
+- **Why.** It did not change susceptibility. It did lower legitimate success on POSSIBLE tasks for gpt-oss
+  (70% → 47%), so it confounds utility.
+- **Effect.** Urgency stays in the design only as a *note trait* (E), where it is randomized.
+
+## 2026-11-20 - DeepSeek V4.1 Flash and GLM 5.3 Flash pilot rows are not archived
+- **What.** These pilot runs were executed in Colab. Their console tables were reported (DeepSeek: note 0/60,
+  control 1/60; GLM: note 3/60, control 1/60), but the raw logs were lost in a Colab runtime reset.
+- **Effect.** They are cited as *reported, not reproducible* and are excluded from `data/raw/pilot`. Both
+  models are re-measured in exp_001.
