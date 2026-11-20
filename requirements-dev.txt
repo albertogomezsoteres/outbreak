@@ -1,0 +1,7 @@
+# Exact versions the test suite passed with (Python 3.13, Linux). `pip install -e .` uses the ranges in pyproject.toml.
+-r requirements.txt
+hypothesis==6.170.17
+pytest-xdist==3.8.0
+ruff==0.17.6
+mypy==2.3.1
+# types-PyYAML (not installed in the build environment)

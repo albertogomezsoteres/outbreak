@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use Outbreak, please cite it as below."
+title: "Outbreak: which AI agents catch a forbidden shortcut from a peer, why, and where to put the guardrail"
+authors:
+  - family-names: "Gomez Soteres"
+    given-names: "Alberto"
+    affiliation: "Duke University"
+version: 0.1.0
+date-released: 2026-11-24
+license: MIT
+repository-code: "https://github.com/albertogomezsoteres/outbreak"
+keywords: [ai-safety, multi-agent-systems, llm-agents, explainability, activation-steering, red-teaming]
