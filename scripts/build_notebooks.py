@@ -60,6 +60,13 @@ if not pathlib.Path("/content/outbreak").exists():
         subprocess.run(["git", "clone", "-q", REPO_URL, "/content/outbreak"], check=True)
 %cd /content/outbreak
 !pip -q install -e ".[{extras}]"
+# The running kernel does not see a package installed a moment ago: put src/ on the path and drop any stale
+# `outbreak` module (Colab has /content on sys.path, where the repo folder itself is also called outbreak).
+import sys, importlib
+sys.path.insert(0, "/content/outbreak/src")
+for m in [m for m in sys.modules if m == "outbreak" or m.startswith("outbreak.")]:
+    del sys.modules[m]
+importlib.invalidate_caches()
 """)
 
 
