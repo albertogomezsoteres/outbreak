@@ -86,8 +86,11 @@ def episodes_frame(records: list[dict[str, Any]]) -> pd.DataFrame:
 
 
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
+    """Records of a run file; when an id appears twice (a failed episode re-run), the last one wins."""
+    from outbreak.pipeline.runner import latest_records
+
     with open(path) as f:
-        return [json.loads(line) for line in f if line.strip()]
+        return latest_records(json.loads(line) for line in f if line.strip())
 
 
 # ------------------------------------------------------------------------------------- H1 / H2

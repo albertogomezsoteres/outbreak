@@ -117,7 +117,7 @@ NB00 = nb(
         ),
         code("""
 show_figure("results/exp_000b/fig_leaderboard.png")
-show_report("results/exp_000b/report.md", sections=("H1 - shortcut", "different mechanism", "Utility", "Cost"))
+show_report("results/exp_000b/report.md", sections=("H1 - shortcut", "different mechanism", "Utility", "Tokens"))
 """),
         code("""
 # To reproduce (~35 min):
@@ -159,7 +159,7 @@ AGENTS = json.dumps([{"id": m} for m in MODELS])
 !outbreak analyze outputs/results/exp_001_main/episodes.jsonl
 show_figure("outputs/results/exp_001_main/analysis/fig_leaderboard.png")
 show_report("outputs/results/exp_001_main/analysis/report.md",
-            sections=("Error audit", "H1", "Any message", "H2", "different mechanism", "Utility", "Cost"))
+            sections=("Error audit", "H1", "Any message", "H2", "different mechanism", "Utility", "Tokens"))
 """),
         code("save_cache()"),
     ]

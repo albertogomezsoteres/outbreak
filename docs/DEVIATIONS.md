@@ -3,6 +3,19 @@
 Every departure from the plan, newest first. Each entry gives the date, what changed, why, and how the
 analysis is affected.
 
+## 2026-11-20 - Provider failures: run stops, failed episodes are re-run (implements prereg section 6)
+- **What happened.** The first pass of exp_001 hit the API key's spending limit after about 930 of 1,710
+  episodes. From then on every call was refused, and 803 episodes were recorded as provider errors.
+- **What changed in the code.**
+  - The client treats an account refusal (HTTP 401/402/403) as fatal, and the run stops with a clear message.
+  - The runner also stops after 25 consecutive errored episodes, whatever the cause.
+  - On resume, errored episodes are run again. The new record supersedes the old one, and the analysis uses
+    the latest record per episode.
+- **Why this is not a design change.** Preregistration section 6 already requires re-running arms with more
+  than 5% errors. This makes the re-run automatic and complete. Episodes that finished are not touched.
+- **Also:** the manifest's `dirty` flag ignores `outputs/` and `models/`, which hold run artifacts (on Colab
+  they are links to Drive).
+
 ## 2026-11-20 - Colab setup cell: import path (after `prereg-v1`, no effect on experiments)
 - The first setup cell installs the package and the next cell imports it in the same kernel. Colab's kernel
   did not see the new install, and `/content/outbreak` (the repo folder) shadowed the package name, so

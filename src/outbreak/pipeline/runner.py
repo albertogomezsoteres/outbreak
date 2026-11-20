@@ -63,19 +63,32 @@ def make_board(spec: EpisodeSpec, channel_filter: ChannelFilter | None = None) -
     return board
 
 
+MAX_CONSECUTIVE_ERRORS = 25  # this many errored episodes in a row means the provider is refusing calls
+
+
+def failed(rec: dict[str, Any]) -> bool:
+    """An episode (``outcome.terminal == "error"``) or an outbreak (``summary.errors > 0``) hit provider errors."""
+    if (rec.get("outcome") or {}).get("terminal") == "error":
+        return True
+    return bool((rec.get("summary") or {}).get("errors"))
+
+
 def done_ids(path: Path) -> set[str]:
+    """Ids whose latest record finished without provider errors. Failed ones are run again on resume
+    (preregistration section 6: errored arms are re-run); the newer record then supersedes the old one."""
     if not path.exists():
         return set()
-    ids = set()
+    latest: dict[str, bool] = {}
     with open(path) as f:
         for line in f:
             line = line.strip()
             if line:
                 try:
-                    ids.add(json.loads(line)["episode_id"])
+                    rec = json.loads(line)
+                    latest[rec["episode_id"]] = not failed(rec)
                 except (json.JSONDecodeError, KeyError):
                     log.warning("skipping corrupt line in %s", path)
-    return ids
+    return {k for k, ok in latest.items() if ok}
 
 
 def run_specs(
@@ -94,7 +107,14 @@ def run_specs(
     finished = done_ids(out_path)
     todo = [s for s in specs if s.episode_id not in finished]
     lock = threading.Lock()
-    stats = {"skipped_done": len(finished), "run": 0, "errors": 0, "budget_stopped": False}
+    stats: dict[str, Any] = {
+        "skipped_done": len(finished),
+        "run": 0,
+        "errors": 0,
+        "budget_stopped": False,
+        "stopped": None,
+    }
+    consecutive_errors = 0
 
     def work(spec: EpisodeSpec) -> EpisodeResult:
         cfg = episode_cfg or EpisodeConfig()
@@ -119,10 +139,17 @@ def run_specs(
             except BudgetExceededError as e:
                 log.error("budget exhausted; stopping: %s", e)
                 stats["budget_stopped"] = True
+                stats["stopped"] = f"budget: {e}"
                 for f in futures:
                     f.cancel()
                 break
-            except Exception:
+            except Exception as e:
+                if getattr(e, "fatal", False):  # e.g. the provider refused the account
+                    log.error("stopping the run: %s", e)
+                    stats["stopped"] = str(e)
+                    for f in futures:
+                        f.cancel()
+                    break
                 log.exception("episode %s crashed", spec.episode_id)
                 stats["errors"] += 1
                 continue
@@ -134,11 +161,32 @@ def run_specs(
                 stats["run"] += 1
             if res.outcome.terminal == "error":
                 stats["errors"] += 1
+                consecutive_errors += 1
+                if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
+                    stats["stopped"] = (
+                        f"{consecutive_errors} episodes in a row failed at the provider; check the account "
+                        "(credits, key limit) and re-run: failed episodes are retried"
+                    )
+                    log.error("stopping the run: %s", stats["stopped"])
+                    for f in futures:
+                        f.cancel()
+                    break
+            else:
+                consecutive_errors = 0
             if progress:
                 progress(stats["run"], len(todo), res)
     return stats
 
 
+def latest_records(recs: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Keep the last record of each ``episode_id`` (a re-run of a failed episode supersedes it)."""
+    by_id: dict[str, dict[str, Any]] = {}
+    for r in recs:
+        by_id.pop(r["episode_id"], None)  # keep file order of the surviving record
+        by_id[r["episode_id"]] = r
+    return list(by_id.values())
+
+
 def read_episodes(path: Path) -> list[dict[str, Any]]:
     with open(path) as f:
-        return [json.loads(line) for line in f if line.strip()]
+        return latest_records(json.loads(line) for line in f if line.strip())
