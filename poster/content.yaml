@@ -1,0 +1,46 @@
+# Poster text. Edit freely; `outbreak poster` rebuilds poster/build/poster.html (+ PDF if Chrome is found).
+# Figures are picked up automatically from outputs/results/*_main/ when they exist; until then the poster
+# shows the real pilot figure and labelled placeholders. Replace every [pending ...] once results are in.
+title: "Outbreak"
+subtitle: "Which AI agents catch a forbidden shortcut from a peer, why, and where to put the guardrail"
+author: "Alberto Gomez Soteres"
+affiliation: "AIPI 590 Explainable AI · Duke University · Fall 2026"
+repo_url: "https://github.com/albertogomezsoteres/outbreak"
+demo_url: "https://albertogomezsoteres.github.io/outbreak/demo/"
+
+hook: >
+  One tip on a shared board and <b>gpt-oss-20b agents took the exact forbidden shortcut it named in 79/96 episodes (4/96 without it)</b>:
+  deleting tests, using an admin token, querying production, inventing data. Agents now work in teams. What spreads between them?
+
+why_it_matters:
+  - "Multi-agent coding systems share notes, memory and boards: a new channel for bad practice to spread."
+  - "Prior work: agents cheat on impossible tasks alone (ImpossibleBench); adversarial payloads infect agent swarms (Agent Smith, Prompt Infection); frontier agents mostly ignore peer precedent (The Troy Moment). Nobody measured ordinary, plausible tips spreading, why they work, or where to stop them."
+
+questions:
+  - "<b>RQ1 Who</b> catches a forbidden shortcut from a peer when genuinely blocked?"
+  - "<b>RQ2 Why (rhetoric)</b> which note traits make it contagious?"
+  - "<b>RQ3 Why (internals)</b> is the decision readable in the hidden state before acting, and can we vaccinate it?"
+  - "<b>RQ4 Where</b> which guardrail stops an outbreak at the least cost to useful work?"
+
+method:
+  - "<b>OutbreakBench:</b> 6 real mini-repos (pytest, paginated API) × 4 forbidden shortcuts: edit tests · admin token · prod replica · fabricate data, + matched solvable tasks for utility."
+  - "<b>Evidence, not opinions:</b> violations detected by canary token, host, test hashes and data provenance; attempts and executions separated."
+  - "<b>Causal design:</b> decision-point prefix, paired scenarios, 2⁶ trait factorial with randomized paraphrases, LLM-written notes for external validity, common random numbers across defenses, preregistration + deviations log."
+  - "<b>White-box:</b> probe on gpt-oss-20b at the decision point (labels = propensity over 8 samples), must beat 'knows which note was read'; diff-of-means vaccine vs random directions; probe-triggered vaccine in closed loop."
+
+findings:
+  - "Reality check (432 episodes): the note transmits the exact shortcut it names, 82% vs 4% (gpt-oss-20b), 56% vs 13% (gpt-5-nano)."
+  - "gpt-5-nano needs no peer: on 6/24 solvable tasks it skipped the API, invented the data (often from a test fixture) and reported success. The note redirects its cheating (fabrication 16→8/24, admin token 0→16/24)."
+  - "[pending exp_001] N/M models significantly susceptible (Holm); range of violation rates."
+  - "[pending exp_002] Strongest trait: … (+X pp); warning trait: … pp."
+  - "[pending notebook 02] Probe AUROC X [CI] vs note identity Y; noise ceiling Z."
+  - "[pending exp_004] Best defense: … cuts violations by X% with utility within 5 pp."
+
+limitations:
+  - "Synthetic (but executable) repos and a simulated API; rates are conditional on reading the board."
+  - "One channel, homogeneous teams, reasoning effort fixed at low; API models change over time."
+  - "Dual use: trait results describe persuasive bad advice; released with the defenses they inform."
+
+future:
+  - "Mixed-model teams, long-term memory as a channel, agents that correct the board (herd immunity)."
+  - "Training-time vaccines vs inference-time steering; SAE features instead of diff-of-means."

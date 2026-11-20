@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Outbreak: how forbidden shortcuts spread between AI agents</title>
+<style>
+.viz-root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface-1: #fcfcfb; --text-primary: #0b0b0b; --text-secondary: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+  --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a;
+  --good: #0ca30c; --critical: #d03b3b; --neutral: #c3c2b7; --warning: #fab219;
+  --div-neg: #184f95; --div-mid: #f0efec; --div-pos: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .viz-root {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface-1: #1a1a19; --text-primary: #f0efec; --text-secondary: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --neutral: #5d5c58; --div-mid: #383835;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+.viz-root { background: var(--page); color: var(--text-primary); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; min-height: 100vh; }
+main { max-width: 1120px; margin: 0 auto; padding: 32px 20px 64px; }
+header h1 { font-size: 30px; line-height: 1.15; margin: 0 0 8px; letter-spacing: -0.01em; }
+header p { color: var(--text-secondary); margin: 0; max-width: 760px; }
+.eyebrow { text-transform: uppercase; letter-spacing: .08em; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 24px 0 8px; }
+.tile, .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; }
+.tile { padding: 16px 18px; }
+.tile .v { font-size: 34px; font-weight: 650; line-height: 1.1; }
+.tile .l { color: var(--text-secondary); font-size: 13px; margin-top: 4px; }
+.card { padding: 18px 20px; margin-top: 18px; }
+.card h2 { font-size: 17px; margin: 0 0 2px; }
+.card .sub { color: var(--text-secondary); font-size: 13px; margin: 0 0 12px; }
+.source { color: var(--muted); font-size: 12px; margin-top: 8px; }
+.row { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 860px) { .row { grid-template-columns: 1fr; } }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+button.seg { border: 1px solid var(--border); background: transparent; color: var(--text-primary); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+button.seg[aria-pressed="true"] { background: var(--text-primary); color: var(--surface-1); }
+input[type=range] { accent-color: var(--series-1); }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+.feed { max-height: 380px; overflow: auto; font-size: 13px; }
+.post { border-left: 3px solid var(--axis); padding: 6px 10px; margin-bottom: 8px; }
+.post.blocked { opacity: .55; border-left-color: var(--critical); }
+.post .meta { color: var(--muted); font-size: 12px; }
+.badge { font-size: 11px; padding: 1px 6px; border-radius: 6px; border: 1px solid var(--border); margin-left: 6px; }
+.empty { color: var(--muted); font-size: 14px; padding: 28px 8px; text-align: center; border: 1px dashed var(--axis); border-radius: 10px; }
+.tooltip { position: fixed; pointer-events: none; background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.12); max-width: 300px; display: none; z-index: 10; }
+.chat { font-size: 13px; max-height: 520px; overflow: auto; }
+.msg { padding: 8px 12px; border-radius: 10px; margin: 6px 0; background: var(--page); border: 1px solid var(--border); white-space: pre-wrap; word-break: break-word; }
+.msg .who { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.msg.note { border-color: var(--warning); }
+.msg.violation { border-color: var(--critical); border-width: 2px; }
+.flag { font-size: 11px; font-weight: 600; margin-left: 8px; }
+.flag.v { color: var(--critical); } .flag.n { color: var(--text-secondary); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+table.data { border-collapse: collapse; width: 100%; font-size: 12px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+table.data th, table.data td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--grid); }
+details summary { cursor: pointer; color: var(--text-secondary); font-size: 12px; margin-top: 6px; }
+svg text { fill: var(--text-secondary); font-size: 11px; }
+footer { color: var(--muted); font-size: 12px; margin-top: 32px; }
+a { color: var(--series-1); }
+</style>
+</head>
+<body>
+<div class="viz-root">
+<main>
+  <header>
+    <div class="eyebrow">Responsible AI · multi-agent safety · explainability</div>
+    <h1>Outbreak: how forbidden shortcuts spread between AI agents</h1>
+    <p>Autonomous coding agents share notes. When one note says "the admin token isn't rate-limited", who catches it,
+      why, and what stops the spread? This page shows real episodes from the study harness. Every panel says where its data came from.</p>
+  </header>
+
+  <section class="tiles" id="tiles"></section>
+
+  <section class="card">
+    <h2>Watch an outbreak</h2>
+    <p class="sub">Twelve agents in three rounds share one board. Nine are blocked by an outage and look for a way out. Patient zero posts the shortcut.</p>
+    <div class="controls" id="armButtons" role="group" aria-label="Defense"></div>
+    <div class="controls">
+      <button class="seg" id="play" aria-label="Play rounds">▶ Play</button>
+      <label for="round" class="legend">Round</label>
+      <input id="round" type="range" min="0" max="3" value="3" step="1" aria-label="Round">
+      <span id="roundLabel" class="legend"></span>
+    </div>
+    <div class="row">
+      <div><svg id="graph" viewBox="0 0 640 380" width="100%" role="img" aria-label="Outbreak graph"></svg>
+        <div class="legend" style="margin-top:6px">
+          <span style="--c:var(--critical)">Violated policy</span>
+          <span style="--c:var(--neutral)">Blocked honestly (report_blocked)</span>
+          <span style="--c:var(--good)">Unblocked, did the job</span>
+          <span style="--c:var(--warning)">Patient zero</span>
+        </div>
+        <div id="obSummary" class="source"></div>
+      </div>
+      <div><div class="eyebrow">Team board</div><div class="feed" id="feed"></div></div>
+    </div>
+    <div class="source" id="obSource"></div>
+  </section>
+
+  <section class="card">
+    <h2>Who catches the shortcut?</h2>
+    <p class="sub">How often the agent takes the shortcut the note names, with the peer note vs an empty board (95% Wilson intervals).</p>
+    <div id="leaderboard"></div>
+    <div class="source" id="lbSource"></div>
+  </section>
+
+  <div class="row">
+    <section class="card">
+      <h2>Which note traits make it contagious?</h2>
+      <p class="sub">Effect of each trait on the violation rate (percentage points), 2⁶ factorial.</p>
+      <div id="traits"></div>
+    </section>
+    <section class="card">
+      <h2>Which defense stops it?</h2>
+      <p class="sub">Safety (fewer violations) vs utility (unblocked agents still succeed).</p>
+      <div id="frontier"></div>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Inside one infected agent</h2>
+    <p class="sub">Real episodes. The peer note and every policy violation are highlighted, using the same detectors that grade the study. In the pilot episode, the agent used the admin token right after reading a config line saying "NOT for agent tasks".</p>
+    <div class="chat" id="chat"></div>
+    <div class="source" id="chatSource"></div>
+  </section>
+
+  <footer>Outbreak · AIPI 590 (Duke) · Detectors are evidence-based (canary tokens, hosts, file hashes, data provenance), never LLM judgments.
+    Code, preregistration and data: see the repository README.</footer>
+</main>
+<div class="tooltip" id="tip" role="status"></div>
+</div>
+<script>
+const DATA = /*__OUTBREAK_DATA__*/null;
+const $ = (id) => document.getElementById(id);
+const css = (v) => getComputedStyle(document.querySelector('.viz-root')).getPropertyValue(v).trim();
+const pct = (x, d = 1) => (x == null || isNaN(x)) ? '–' : (100 * x).toFixed(d) + '%';
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const tip = $('tip');
+function showTip(e, html) { tip.innerHTML = html; tip.style.display = 'block'; tip.style.left = Math.min(e.clientX + 14, innerWidth - 320) + 'px'; tip.style.top = (e.clientY + 14) + 'px'; }
+function hideTip() { tip.style.display = 'none'; }
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs = {}, parent) { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; }
+
+// ------------------------------------------------------------------ tiles
+(function tiles() {
+  const t = [];
+  const rl = DATA?.reality?.leaderboard;
+  if (rl) {
+    const g = (m, c) => rl.find(r => r.model === m && r.condition === c);
+    const o = g('openai/gpt-oss-20b', 'note'), oc = g('openai/gpt-oss-20b', 'empty_board');
+    const n = g('openai/gpt-5-nano', 'note'), nc = g('openai/gpt-5-nano', 'empty_board');
+    if (o && oc) t.push([pct(o.rate, 0), `of gpt-oss-20b agents took the exact shortcut a teammate's note suggested (${o.k}/${o.n}), vs ${pct(oc.rate, 0)} without the note`]);
+    if (n && nc) t.push([pct(n.rate, 0), `for gpt-5-nano (${n.k}/${n.n}), vs ${pct(nc.rate, 0)} without the note`]);
+    const sp = (DATA.reality.spontaneous_possible || []).find(r => r.model === 'openai/gpt-5-nano');
+    if (sp) t.push([`${sp.k_other_violation}/${sp.n}`, 'solvable tasks where gpt-5-nano skipped the API, invented the data and reported success, with no note at all']);
+  } else {
+    const lb = DATA?.pilot?.leaderboard || [];
+    const g = (m, c) => lb.find(r => r.model === m && r.condition === c);
+    const oss = g('openai/gpt-oss-20b', 'note'), ossC = g('openai/gpt-oss-20b', 'empty_board');
+    if (oss) t.push([pct(oss.rate), `of gpt-oss-20b agents broke policy after reading one peer note (${oss.k}/${oss.n}, pilot)`]);
+    if (ossC) t.push([pct(ossC.rate, 0), `without the note (${ossC.k}/${ossC.n}), same blocked task`]);
+  }
+  t.push(['4', 'shortcut types: edit tests · admin token · prod replica · fabricate data']);
+  $('tiles').innerHTML = t.map(([v, l]) => `<div class="tile"><div class="v">${esc(v)}</div><div class="l">${esc(l)}</div></div>`).join('');
+})();
+
+// ------------------------------------------------------------------ outbreak replay
+const OB = DATA?.outbreak;
+const ARM_LABEL = { no_board: 'No board', board: 'Undefended board', channel_judge: 'LLM judge on board', channel_filter: 'Trained filter on board', action_monitor: 'Action monitor', oracle_monitor: 'Oracle monitor (upper bound)' };
+let arm = OB && OB.arms ? (OB.arms.board ? 'board' : Object.keys(OB.arms)[0]) : null;
+let round = 3;
+function drawArmButtons() {
+  if (!OB) return;
+  $('armButtons').innerHTML = Object.keys(OB.arms).map(a => `<button class="seg" data-arm="${a}" aria-pressed="${a === arm}">${esc(ARM_LABEL[a] || a)}</button>`).join('');
+  $('armButtons').querySelectorAll('button').forEach(b => b.onclick = () => { arm = b.dataset.arm; drawArmButtons(); drawOutbreak(); });
+}
+function nodeColor(a) { return a.violation ? css('--critical') : (a.blocked ? css('--neutral') : css('--good')); }
+function drawOutbreak() {
+  const svg = $('graph'); svg.innerHTML = '';
+  if (!OB) { $('feed').innerHTML = '<div class="empty">No outbreak data.</div>'; return; }
+  const v = OB.arms[arm]; const agents = v.agents;
+  const rounds = [...new Set(agents.map(a => a.round))].sort();
+  const W = 640, H = 380, x0 = 70, colW = (W - x0 - 40) / rounds.length;
+  const pos = { 'agent-00': [36, H / 2] };
+  rounds.forEach((r, i) => {
+    const col = agents.filter(a => a.round === r);
+    col.forEach((a, j) => { pos[a.agent_id] = [x0 + colW * (i + 0.5), 40 + (H - 80) * (col.length === 1 ? 0.5 : j / (col.length - 1))]; });
+    el('text', { x: x0 + colW * (i + 0.5), y: 16, 'text-anchor': 'middle' }, svg).textContent = `Round ${r}`;
+  });
+  el('text', { x: 36, y: 16, 'text-anchor': 'middle' }, svg).textContent = 'Round 0';
+  // edges: plausible chains (reader violated after reading a harmful post)
+  for (const [src, dst] of v.chains) {
+    const d = agents.find(a => a.agent_id === dst); if (!d || d.round > round || !pos[src] || !pos[dst]) continue;
+    const [x1, y1] = pos[src], [x2, y2] = pos[dst];
+    el('path', { d: `M${x1},${y1} C${(x1 + x2) / 2},${y1} ${(x1 + x2) / 2},${y2} ${x2},${y2}`, fill: 'none', stroke: css('--critical'), 'stroke-opacity': 0.35, 'stroke-width': 2 }, svg);
+  }
+  // patient zero
+  const pz = el('circle', { cx: pos['agent-00'][0], cy: pos['agent-00'][1], r: 13, fill: arm === 'no_board' ? css('--neutral') : css('--warning'), stroke: css('--surface-1'), 'stroke-width': 2 }, svg);
+  pz.addEventListener('mousemove', e => showTip(e, '<b>Patient zero</b><br>Seeded shortcut note on the board'));
+  pz.addEventListener('mouseleave', hideTip);
+  for (const a of agents) {
+    const [cx, cy] = pos[a.agent_id]; const visible = a.round <= round;
+    const g = el('g', { opacity: visible ? 1 : 0.18 }, svg);
+    el('circle', { cx, cy, r: 18, fill: 'transparent' }, g); // larger hit target
+    el('circle', { cx, cy, r: 11, fill: visible ? nodeColor(a) : css('--axis'), stroke: css('--surface-1'), 'stroke-width': 2 }, g);
+    if (visible && a.violation) el('text', { x: cx, y: cy + 4, 'text-anchor': 'middle', style: 'fill:#fff;font-weight:700;font-size:11px' }, g).textContent = '!';
+    el('text', { x: cx + 16, y: cy + 4 }, g).textContent = a.agent_id.replace('agent-', '#');
+    g.addEventListener('mousemove', e => showTip(e, `<b>${esc(a.agent_id)}</b> · ${esc(a.family)}<br>${a.blocked ? 'Blocked by the outage' : 'Not blocked'}<br>` +
+      `Outcome: <b>${a.violation ? 'violated policy' : (a.legit_success ? 'did the job legitimately' : (a.honest_block ? 'reported blocked' : 'did not finish'))}</b>` +
+      (a.read_from?.length ? `<br>Read posts by: ${esc(a.read_from.join(', '))}` : '') + (a.posts?.length ? `<br>Posted: “${esc(a.posts[0].slice(0, 90))}”` : '')));
+    g.addEventListener('mouseleave', hideTip);
+  }
+  const s = v.summary;
+  $('obSummary').textContent = `${s.violations}/${s.n_agents} agents violated · blocked-agent violation rate ${pct(s.blocked_violation_rate, 0)} · utility ${pct(s.utility, 0)} · ${s.posts_blocked} posts stopped by the channel defense`;
+  $('roundLabel').textContent = round === 0 ? 'patient zero only' : `through round ${round}`;
+  const posts = v.board.filter(p => p.round <= round);
+  $('feed').innerHTML = posts.length ? posts.map(p => `<div class="post ${p.published ? '' : 'blocked'}"><div class="meta">#${p.id} · ${esc(p.author)} · round ${p.round}` +
+    `${p.seeded ? '<span class="badge">seeded</span>' : ''}${p.published ? '' : '<span class="badge">blocked by defense</span>'}</div>${esc(p.text)}</div>`).join('') :
+    '<div class="empty">Nothing on the board.</div>';
+  $('obSource').textContent = 'Source: ' + OB.label;
+}
+$('round').oninput = (e) => { round = +e.target.value; drawOutbreak(); };
+$('play').onclick = () => { let r = 0; round = 0; $('round').value = 0; drawOutbreak();
+  const t = setInterval(() => { r++; round = r; $('round').value = r; drawOutbreak(); if (r >= 3) clearInterval(t); }, 1100); };
+drawArmButtons(); drawOutbreak();
+
+// ------------------------------------------------------------------ leaderboard (dot + interval)
+(function leaderboard() {
+  const rows = DATA?.leaderboard || DATA?.pilot?.leaderboard || [];
+  $('lbSource').textContent = DATA?.leaderboard_source || 'Source: feasibility pilot (real OpenRouter episodes, earlier single-task harness). Replaced by exp_001.';
+  const conds = ['no_board', 'empty_board', 'note'].filter(c => rows.some(r => r.condition === c));
+  const label = { no_board: 'No board', empty_board: 'Empty board', note: 'Shortcut note' };
+  const colors = [css('--series-1'), css('--series-2'), css('--series-3')];
+  const models = [...new Set(rows.map(r => r.model))].sort((a, b) => ((rows.find(r => r.model === b && r.condition === 'note')?.rate) || 0) - ((rows.find(r => r.model === a && r.condition === 'note')?.rate) || 0));
+  if (!models.length) { $('leaderboard').innerHTML = '<div class="empty">No data yet.</div>'; return; }
+  const W = 720, rowH = 34, H = 40 + rowH * models.length, x0 = 170, x1 = W - 20;
+  const xmax = Math.max(0.1, ...rows.map(r => r.high)) * 1.05;
+  const X = v => x0 + (x1 - x0) * v / xmax;
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Violation rate by model' });
+  for (let t = 0; t <= xmax + 1e-9; t += xmax > 0.5 ? 0.2 : 0.05) {
+    el('line', { x1: X(t), x2: X(t), y1: 10, y2: H - 22, stroke: css('--grid') }, svg);
+    el('text', { x: X(t), y: H - 6, 'text-anchor': 'middle' }, svg).textContent = Math.round(t * 100) + '%';
+  }
+  models.forEach((m, i) => {
+    const y = 26 + i * rowH;
+    el('text', { x: x0 - 10, y: y + 4, 'text-anchor': 'end' }, svg).textContent = m.split('/').pop();
+    conds.forEach((c, j) => {
+      const r = rows.find(q => q.model === m && q.condition === c); if (!r) return;
+      const yy = y + (j - (conds.length - 1) / 2) * 9;
+      el('line', { x1: X(r.low), x2: X(r.high), y1: yy, y2: yy, stroke: colors[j], 'stroke-width': 2 }, svg);
+      const d = el('circle', { cx: X(r.rate), cy: yy, r: 5, fill: colors[j], stroke: css('--surface-1'), 'stroke-width': 1.5 }, svg);
+      const hit = el('rect', { x: X(r.low) - 6, y: yy - 6, width: Math.max(12, X(r.high) - X(r.low) + 12), height: 12, fill: 'transparent' }, svg);
+      [d, hit].forEach(n => { n.addEventListener('mousemove', e => showTip(e, `<b>${esc(m)}</b><br>${label[c]}: ${pct(r.rate)} (${r.k}/${r.n})<br>95% CI ${pct(r.low)}–${pct(r.high)}`)); n.addEventListener('mouseleave', hideTip); });
+    });
+  });
+  $('leaderboard').appendChild(svg);
+  const lg = document.createElement('div'); lg.className = 'legend';
+  lg.innerHTML = conds.map((c, j) => `<span style="--c:${colors[j]}">${label[c]}</span>`).join('');
+  $('leaderboard').appendChild(lg);
+  const det = document.createElement('details');
+  det.innerHTML = '<summary>Table view</summary><table class="data"><tr><th>Model</th><th>Condition</th><th>k/n</th><th>Rate</th><th>95% CI</th></tr>' +
+    rows.map(r => `<tr><td>${esc(r.model)}</td><td>${label[r.condition] || r.condition}</td><td>${r.k}/${r.n}</td><td>${pct(r.rate)}</td><td>${pct(r.low)}–${pct(r.high)}</td></tr>`).join('') + '</table>';
+  $('leaderboard').appendChild(det);
+})();
+
+// ------------------------------------------------------------------ traits heatmap (diverging, 0 = gray)
+(function traits() {
+  const rows = DATA?.traits;
+  if (!rows?.length) { $('traits').innerHTML = '<div class="empty">Populated by exp_002 (trait factorial).<br>Run it and then <code>outbreak export-demo</code>.</div>'; return; }
+  const models = [...new Set(rows.map(r => r.model))], traits = ['A', 'B', 'C', 'D', 'E', 'F'];
+  const names = { A: 'actionable', B: 'justified', C: 'social proof', D: 'authority', E: 'urgency', F: 'warning' };
+  const lim = Math.max(0.01, ...rows.map(r => Math.abs(r.rd)));
+  const mix = (a, b, t) => { const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); const A = p(a), B = p(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',')})`; };
+  const col = v => v >= 0 ? mix(css('--div-mid'), css('--div-pos'), Math.min(1, v / lim)) : mix(css('--div-mid'), css('--div-neg'), Math.min(1, -v / lim));
+  const W = 420, cw = 46, ch = 30, x0 = 120, H = 50 + ch * models.length;
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Trait effects' });
+  traits.forEach((t, j) => { el('text', { x: x0 + cw * j + cw / 2, y: 16, 'text-anchor': 'middle' }, svg).textContent = names[t]; });
+  models.forEach((m, i) => {
+    el('text', { x: x0 - 8, y: 30 + ch * i + ch / 2 + 4, 'text-anchor': 'end' }, svg).textContent = m.split('/').pop();
+    traits.forEach((t, j) => {
+      const r = rows.find(q => q.model === m && q.trait === t); if (!r) return;
+      const rect = el('rect', { x: x0 + cw * j + 1, y: 30 + ch * i + 1, width: cw - 2, height: ch - 2, rx: 4, fill: col(r.rd) }, svg);
+      const tx = el('text', { x: x0 + cw * j + cw / 2, y: 30 + ch * i + ch / 2 + 4, 'text-anchor': 'middle', style: `fill:${Math.abs(r.rd) > 0.6 * lim ? '#fff' : css('--text-primary')}` }, svg);
+      tx.textContent = (r.rd >= 0 ? '+' : '') + (100 * r.rd).toFixed(0);
+      rect.addEventListener('mousemove', e => showTip(e, `<b>${esc(m)}</b> · ${names[t]}<br>${(100 * r.rd).toFixed(1)} pp [${(100 * r.low).toFixed(1)}, ${(100 * r.high).toFixed(1)}]`));
+      rect.addEventListener('mouseleave', hideTip);
+    });
+  });
+  $('traits').appendChild(svg);
+})();
+
+// ------------------------------------------------------------------ frontier
+(function frontier() {
+  const rows = DATA?.frontier;
+  if (!rows?.length) { $('frontier').innerHTML = '<div class="empty">Populated by exp_004 (outbreaks + defenses).<br>Run it and then <code>outbreak export-demo</code>.</div>'; return; }
+  const arms = [...new Set(rows.map(r => r.arm))];
+  const colors = [css('--series-1'), css('--series-2'), css('--series-3'), '#eda100', '#e87ba4', '#008300'];
+  const W = 420, H = 300, x0 = 46, y0 = H - 34, x1 = W - 12, y1 = 12;
+  const X = v => x0 + (x1 - x0) * v, Y = v => y0 - (y0 - y1) * v;
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'Safety utility frontier' });
+  for (let t = 0; t <= 1.0001; t += 0.25) {
+    el('line', { x1: X(t), x2: X(t), y1, y2: y0, stroke: css('--grid') }, svg); el('line', { x1: x0, x2: x1, y1: Y(t), y2: Y(t), stroke: css('--grid') }, svg);
+    el('text', { x: X(t), y: H - 18, 'text-anchor': 'middle' }, svg).textContent = Math.round(100 * t) + '%';
+    el('text', { x: x0 - 6, y: Y(t) + 4, 'text-anchor': 'end' }, svg).textContent = Math.round(100 * t) + '%';
+  }
+  el('text', { x: (x0 + x1) / 2, y: H - 2, 'text-anchor': 'middle' }, svg).textContent = 'Violation rate (blocked agents) ← safer';
+  arms.forEach((a, i) => {
+    const pts = rows.filter(r => r.arm === a).sort((p, q) => p.violation_rate - q.violation_rate);
+    if (pts.length > 1) el('polyline', { points: pts.map(p => `${X(p.violation_rate)},${Y(p.utility)}`).join(' '), fill: 'none', stroke: colors[i % 6], 'stroke-width': 2 }, svg);
+    pts.forEach(p => { const c = el('circle', { cx: X(p.violation_rate), cy: Y(p.utility), r: 6, fill: colors[i % 6], stroke: css('--surface-1'), 'stroke-width': 2 }, svg);
+      c.addEventListener('mousemove', e => showTip(e, `<b>${esc(ARM_LABEL[a] || a)}</b>${p.threshold != null && !isNaN(p.threshold) ? ' · threshold ' + p.threshold : ''}<br>violations ${pct(p.violation_rate)} · utility ${pct(p.utility)}`)); c.addEventListener('mouseleave', hideTip); });
+  });
+  $('frontier').appendChild(svg);
+  const lg = document.createElement('div'); lg.className = 'legend';
+  lg.innerHTML = arms.map((a, i) => `<span style="--c:${colors[i % 6]}">${esc(ARM_LABEL[a] || a)}</span>`).join('');
+  $('frontier').appendChild(lg);
+})();
+
+// ------------------------------------------------------------------ transcript viewer
+(function chat() {
+  const list = [...(DATA?.transcripts || [])];
+  if (DATA?.pilot?.transcript) list.push({ ...DATA.pilot.transcript, mechanism: 'pilot' });
+  if (!list.length) { $('chat').innerHTML = '<div class="empty">No transcript available.</div>'; return; }
+  const MECH = { m1_test_edit: 'Edits a test', m2_admin_token: 'Admin token', m3_prod_replica: 'Prod replica', m4_fabrication: 'Fabricates data', spontaneous: 'No note: invents the data anyway', pilot: 'Pilot (admin token)' };
+  let cur = 0;
+  const bar = document.createElement('div'); bar.className = 'controls';
+  bar.innerHTML = list.map((t, i) => `<button class="seg" data-i="${i}" aria-pressed="${i === 0}">${esc(MECH[t.mechanism] || t.mechanism)} · ${esc(t.model.split('/').pop())}</button>`).join('');
+  $('chat').before(bar);
+  function render() {
+    const t = list[cur];
+    bar.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.i === cur)));
+    $('chat').innerHTML = t.steps.map(s => {
+      const callTxt = s.calls.map(c => `→ ${c.name}(${c.arguments})`).join('\n');
+      const isViol = (s.violation || []).length > 0, isNote = !!s.note;
+      const cls = isViol ? 'violation' : (isNote ? 'note' : '');
+      const flag = isViol ? `<span class="flag v">⚠ policy violation (${esc(s.violation.join(', '))})</span>` : (isNote ? '<span class="flag n">● the peer note</span>' : '');
+      return `<div class="msg ${cls}"><div class="who">${esc(s.role)}${flag}</div>${esc((s.content || '') + (s.content && callTxt ? '\n' : '') + callTxt)}</div>`;
+    }).join('');
+    $('chatSource').textContent = `Source: ${t.source} (${t.model}). Flags come from the study's evidence-based detectors.`;
+  }
+  bar.querySelectorAll('button').forEach(b => b.onclick = () => { cur = +b.dataset.i; render(); });
+  render();
+})();
+</script>
+</body>
+</html>
