@@ -125,7 +125,7 @@ NB01 = nb(
         header(
             "01 · Who catches the shortcut? (Act 1a, exp_001)",
             "Which models execute the forbidden shortcut a teammate's note names, when they are genuinely blocked?",
-            "No board / empty board / shortcut note on 30 scenario draws × 4 shortcuts (+ solvable tasks), per model.",
+            "No board / empty board / benign note / shortcut note on 30 scenario draws × 4 shortcuts (+ solvable tasks), per model.",
             "CPU · ~1-2 h for 6-8 models",
         ),
         get_code(),
@@ -152,7 +152,7 @@ AGENTS = json.dumps([{"id": m} for m in MODELS])
 !outbreak analyze outputs/results/exp_001_main/episodes.jsonl
 show_figure("outputs/results/exp_001_main/analysis/fig_leaderboard.png")
 show_report("outputs/results/exp_001_main/analysis/report.md",
-            sections=("Error audit", "H1 - shortcut", "H2", "different mechanism", "Utility", "Cost"))
+            sections=("Error audit", "H1", "Any message", "H2", "different mechanism", "Utility", "Cost"))
 """),
         code("save_cache()"),
     ]
@@ -198,7 +198,7 @@ NB03 = nb(
             "03 · Where to stop it? (Act 4: channel filter, LLM judge, outbreaks)",
             "In a 12-agent team sharing a board, which guardrail stops the spread at the least cost to useful work?",
             "Filter hyperparameter search (validation only) → training → judge-vs-filter on the same held-out posts → "
-            "exp_004 outbreaks under 6 defense arms.",
+            "exp_004: a causal test of agent-to-agent transmission (patient zero removed after round 1, notes relayed or not) and outbreaks under each defense.",
             "CPU · ~3-4 h",
             after="notebook 02 (the filter learns from exp_002)",
         ),
@@ -219,14 +219,16 @@ print(open("models/trained/channel_filter.report.json").read()[:1500])
 !outbreak judge-eval outputs/results/exp_002_main/episodes.jsonl --judge openai/gpt-5-nano --out outputs/results/judge_vs_filter
 print(open("outputs/results/judge_vs_filter/judge_vs_filter.json").read())
 """),
-        md("## 3. Outbreaks (exp_004): 20 outbreaks × 6 arms × 3 thresholds, paired populations"),
+        md(
+            "## 3. Outbreaks (exp_004): 30 paired outbreaks; transmission test + defenses at pre-registered operating points"
+        ),
         code("""
 !outbreak run experiments/single_experiments/04_outbreak_defenses.yaml --run-id exp_004_main --dry-run
 !outbreak run experiments/single_experiments/04_outbreak_defenses.yaml --run-id exp_004_main
 !outbreak analyze outputs/results/exp_004_main/outbreaks.jsonl
 show_figure("outputs/results/exp_004_main/analysis/fig_outbreak_growth.png")
 show_figure("outputs/results/exp_004_main/analysis/fig_frontier.png")
-show_report("outputs/results/exp_004_main/analysis/report.md", sections=("Error audit", "H4"))
+show_report("outputs/results/exp_004_main/analysis/report.md", sections=("Error audit", "H4", "H4c"))
 """),
         code("save_cache()"),
     ]
