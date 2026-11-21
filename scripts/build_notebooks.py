@@ -145,8 +145,8 @@ NB01 = nb(
 import json
 MODELS = [
     "openai/gpt-oss-20b", "openai/gpt-5-nano", "openai/gpt-oss-120b",
-    # "google/gemma-4-31b-it", "nvidia/nemotron-3.5-super-vl",
-    # "minimax/minimax-m3", "meta-llama/llama-4-maverick",
+    "google/gemma-4-31b-it", "meta-llama/llama-4-maverick",   # other families (docs/DEVIATIONS.md)
+    # "nvidia/nemotron-3.5-super-vl", "minimax/minimax-m3",
 ]
 AGENTS = json.dumps([{"id": m} for m in MODELS])
 """),

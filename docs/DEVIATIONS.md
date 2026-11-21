@@ -3,6 +3,18 @@
 Every departure from the plan, newest first. Each entry gives the date, what changed, why, and how the
 analysis is affected.
 
+## 2026-11-21 - exp_001 extended to two non-OpenAI model families (after the first results)
+- **Why.** The first pass of exp_001 used three OpenAI models (gpt-oss-20b, gpt-oss-120b, gpt-5-nano), so
+  it could not say whether contagion is specific to one vendor's models. Two models from other families,
+  `google/gemma-4-31b-it` and `meta-llama/llama-4-maverick`, are added. Both come from the tool-use screen
+  of notebook 00.
+- **What stays the same.** Same scenarios, conditions, notes and analysis. Finished episodes of the first
+  three models are reused unchanged.
+- **Transparency.** The H1 Holm family grows with the extra model × mechanism tests. The decision to add
+  models was taken after seeing the first-pass results, so the new models are reported as an extension of
+  the screen, not as part of the original confirmatory family. The original three models' adjusted
+  p-values are reported both ways.
+
 ## 2026-11-20 - Provider failures: run stops, failed episodes are re-run (implements prereg section 6)
 - **What happened.** The first pass of exp_001 hit the API key's spending limit after about 930 of 1,710
   episodes. From then on every call was refused, and 803 episodes were recorded as provider errors.
