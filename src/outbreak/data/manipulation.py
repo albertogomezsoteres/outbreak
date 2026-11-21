@@ -71,13 +71,19 @@ def rate(model: ChatModel, notes: Iterable[dict[str, Any]], seed: int = 0) -> pd
 
 
 def agreement(df: pd.DataFrame) -> pd.DataFrame:
-    """Per-trait accuracy and Cohen's kappa of rater vs design (template notes only)."""
+    """Per-trait accuracy and Cohen's kappa of rater vs design.
+
+    Only template notes have a design; natural notes in the same frame (design columns empty) are coded,
+    not validated, so they are left out here. Unparsed ratings are left out too.
+    """
     from sklearn.metrics import cohen_kappa_score
 
-    ok = df[df.parsed]
     out = []
     for t in TRAITS:
-        if f"design_{t}" not in ok:
+        if f"design_{t}" not in df:
+            continue
+        ok = df[df.parsed & df[f"design_{t}"].notna() & df[f"rated_{t}"].notna()]
+        if ok.empty:
             continue
         d, r = ok[f"design_{t}"].astype(int), ok[f"rated_{t}"].astype(int)
         kappa = cohen_kappa_score(d, r) if d.nunique() > 1 or r.nunique() > 1 else float("nan")

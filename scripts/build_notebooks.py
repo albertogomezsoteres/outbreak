@@ -186,6 +186,7 @@ import pandas as pd; display(pd.read_csv("outputs/results/manipulation_check/agr
         code("""
 !outbreak run experiments/single_experiments/02_trait_factorial.yaml --run-id exp_002_main
 !outbreak analyze outputs/results/exp_002_main/episodes.jsonl
+import pandas as pd
 show_figure("outputs/results/exp_002_main/analysis/fig_trait_heatmap.png")
 display(pd.read_csv("outputs/results/exp_002_main/analysis/h3_trait_risk_differences.csv"))
 """),

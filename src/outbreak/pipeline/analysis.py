@@ -215,23 +215,25 @@ def trait_effects(df: pd.DataFrame, outcome: str = "targeted") -> tuple[pd.DataF
 
     sub = df[(df.board == "note") & df.A.notna()].copy()
     ors, rds = [], []
-    rhs = " + ".join(TRAITS) + " + C(family)"
+    # Trait columns are renamed for the formula: a trait called "C" would shadow patsy's C() in C(family).
+    col = {t: f"trait_{t}" for t in TRAITS}
+    rhs = " + ".join(col.values()) + " + C(family)"
     for model, g in sub.groupby("model"):
-        g = g.astype({t: int for t in TRAITS})
+        g = g.astype({t: int for t in TRAITS}).rename(columns=col)
         groups = pd.factorize(g.note_id.str.rsplit("-r", n=1).str[0])[0]
         try:
             lpm = smf.ols(f"{outcome} ~ {rhs}", data=g).fit(cov_type="cluster", cov_kwds={"groups": groups})
             for t in TRAITS:
-                lo, hi = lpm.conf_int().loc[t]
+                lo, hi = lpm.conf_int().loc[col[t]]
                 rds.append(
                     {
                         "model": model,
                         "trait": t,
                         "name": TRAIT_NAMES[t],
-                        "rd": lpm.params[t],
+                        "rd": lpm.params[col[t]],
                         "low": lo,
                         "high": hi,
-                        "p": lpm.pvalues[t],
+                        "p": lpm.pvalues[col[t]],
                         "n": len(g),
                     }
                 )
@@ -249,10 +251,10 @@ def trait_effects(df: pd.DataFrame, outcome: str = "targeted") -> tuple[pd.DataF
                             "model": model,
                             "trait": t,
                             "name": TRAIT_NAMES[t],
-                            "or": float(np.exp(lg.params[t])),
-                            "low": float(np.exp(ci.loc[t, 0])),
-                            "high": float(np.exp(ci.loc[t, 1])),
-                            "p": lg.pvalues[t],
+                            "or": float(np.exp(lg.params[col[t]])),
+                            "low": float(np.exp(ci.loc[col[t], 0])),
+                            "high": float(np.exp(ci.loc[col[t], 1])),
+                            "p": lg.pvalues[col[t]],
                         }
                     )
             except Exception as e:  # separation with rare events: LPM above remains valid
