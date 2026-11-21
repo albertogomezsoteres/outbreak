@@ -119,3 +119,28 @@ def test_reality_check_data_integrity_and_frozen_numbers():
     with open(root / "results/exp_000b/fig_leaderboard.csv") as fh:
         rows = {(r["model"], r["condition"]): r for r in csv.DictReader(fh)}
     assert rows[("openai/gpt-oss-20b", "note")]["k"] == "79"
+
+
+def test_agreement_ignores_natural_and_unparsed_notes():
+    """Template notes (with a design) and natural notes (no design) are rated together; agreement is
+    computed on the template notes only, and an unparsed rating is left out."""
+    import pandas as pd
+
+    from outbreak.data.manipulation import agreement
+    from outbreak.data.notes import TRAITS
+
+    rows = []
+    for i in range(8):  # template notes, rater agrees with the design
+        bits = {t: (i >> k) & 1 for k, t in enumerate(TRAITS)}
+        rows.append(
+            {
+                "note_id": f"t{i}",
+                "parsed": True,
+                **{f"rated_{t}": b for t, b in bits.items()},
+                **{f"design_{t}": b for t, b in bits.items()},
+            }
+        )
+    rows.append({"note_id": "nat0", "parsed": True, **{f"rated_{t}": 1 for t in TRAITS}})  # natural note
+    rows.append({"note_id": "t_bad", "parsed": False, **{f"design_{t}": 1 for t in TRAITS}})  # unparsed
+    out = agreement(pd.DataFrame(rows))
+    assert len(out) == len(TRAITS) and (out.n == 8).all() and (out.accuracy == 1.0).all()

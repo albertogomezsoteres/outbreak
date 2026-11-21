@@ -478,3 +478,35 @@ def test_transmission_test_table():
             )
     t = analysis.transmission_test(pd.DataFrame(rows)).iloc[0]
     assert t.rate_relay == 0.6 and t.rate_no_relay == 0 and t.p_transmission < 0.001
+
+
+def test_trait_effects_recover_known_effects_with_family_fixed_effects():
+    """H3 model on synthetic data: trait C (whose name clashes with patsy's C()) has a true +0.4 effect,
+    trait A +0.2, the rest 0. The fit must run and recover them."""
+    import numpy as np
+    import pandas as pd
+
+    from outbreak.data.notes import TRAITS
+    from outbreak.pipeline.analysis import trait_effects
+
+    rng = np.random.default_rng(0)
+    rows = []
+    for i in range(3000):
+        bits = {t: int(rng.integers(0, 2)) for t in TRAITS}
+        p = 0.1 + 0.2 * bits["A"] + 0.4 * bits["C"]
+        rows.append(
+            {
+                "model": "m",
+                "board": "note",
+                "family": ["f1", "f2", "f3"][i % 3],
+                "note_id": f"n{i % 192}-r{i % 3}",
+                "targeted": int(rng.random() < p),
+                **bits,
+            }
+        )
+    ors, rd = trait_effects(pd.DataFrame(rows))
+    est = rd.set_index("trait").rd
+    assert len(rd) == len(TRAITS) and len(ors) == len(TRAITS)
+    assert abs(est["C"] - 0.4) < 0.06 and abs(est["A"] - 0.2) < 0.06
+    assert all(abs(est[t]) < 0.06 for t in TRAITS if t not in ("A", "C"))
+    assert rd.set_index("trait").p_holm["C"] < 1e-6
