@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Secrets (never commit keys)
+.env
+*.key
+
+# Large / regenerable artifacts (keep folder structure via .gitkeep)
+outputs/cache/
+outputs/logs/*
+!outputs/logs/.gitkeep
+outputs/results/*
+!outputs/results/.gitkeep
+!outputs/results/README.md
+models/checkpoints/*
+!models/checkpoints/.gitkeep
+models/pretrained/*
+!models/pretrained/.gitkeep
+data/interim/*
+!data/interim/.gitkeep
+wandb/
+
+# OS
+.DS_Store
+
+# Generated poster build (rebuild with `outbreak poster`); only the print-ready PDF is kept
+!poster/build/
+poster/build/*
+!poster/build/outbreak_poster.pdf
