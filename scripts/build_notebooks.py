@@ -308,12 +308,25 @@ print(lm.n_layers, "layers |", len(rows), "prefixes")
 """),
         md("## Activations at the decision point (cached on Drive)"),
         code("""
+# Saved to Drive in chunks of 50: if Colab disconnects, re-running this cell continues where it stopped.
+import time
 cache = f"{RUN}/activations_{MODEL_ID.split('/')[-1]}.npz"
+chunks = Path(RUN) / f"activation_chunks_{MODEL_ID.split('/')[-1]}"; chunks.mkdir(exist_ok=True)
 if os.path.exists(cache):
     acts = {int(k): v for k, v in np.load(cache).items()}
 else:
-    acts = hidden_states(lm, texts, LAYERS, position="last", batch_size=1)
+    CH, t0 = 50, time.time()
+    for s in range(0, len(texts), CH):
+        f = chunks / f"{s:05d}.npz"
+        if not f.exists():
+            part = hidden_states(lm, texts[s:s + CH], LAYERS, position="last", batch_size=1)
+            np.savez(f, **{str(k): v for k, v in part.items()})
+        done = min(s + CH, len(texts))
+        print(f"{done}/{len(texts)} prefixes | {(time.time() - t0) / 60:.1f} min", flush=True)
+    parts = [np.load(chunks / f"{s:05d}.npz") for s in range(0, len(texts), CH)]
+    acts = {l: np.concatenate([p[str(l)] for p in parts]) for l in LAYERS}
     np.savez(cache, **{str(k): v for k, v in acts.items()})
+print({l: a.shape for l, a in acts.items()})
 """),
         md("## Act 2 · Probe: layer and C selected on validation scenarios; the test split is used once"),
         code("""
@@ -348,7 +361,7 @@ from outbreak.explainability.activations import action_continuation
 from outbreak.pipeline.harvest import utility_prefixes
 tr = np.isin(split, ["train", "val"])
 u, norm = diff_of_means(acts[best][tr], base.rate[tr], hi=0.5, lo=0.0)
-held = [r for r, s in zip(rows, split) if s in ("test", "ood") and "violating_action" in r][:60]
+held = [r for r, s in zip(rows, split) if s in ("test", "ood") and "violating_action" in r][:40]
 items = []
 for r in held:
     tools = tools_for(r["board_present"])
@@ -357,8 +370,8 @@ for r in held:
     items.append(MarginItem(p, v, c))
 util = [action_continuation(lm.tokenizer, r["decision_prefix"], tools_for(True), *r["legit_action"])
         for r in utility_prefixes(["sales_report", "latency_slo", "invoice_totals"], [900, 901, 902, 903])]
-st = pd.DataFrame([vars(r) for r in steering_sweep(lm, items, best, u, norm, [0.0, 0.5, 1.0, 2.0, 4.0],
-                                                   n_random=3, utility_items=util)])
+st = pd.DataFrame([vars(r) for r in steering_sweep(lm, items, best, u, norm, [0.0, 1.0, 2.0, 4.0],
+                                                   n_random=2, utility_items=util)])
 st.to_csv(WB / "steering.csv", index=False); display(st)
 show_figure(plotting.steering(st, WB / "fig_steering"))
 """),

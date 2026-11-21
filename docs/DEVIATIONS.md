@@ -3,6 +3,15 @@
 Every departure from the plan, newest first. Each entry gives the date, what changed, why, and how the
 analysis is affected.
 
+## 2026-11-21 - Notebook 05: smaller steering sweep, chunked activations (GPU time)
+- **Why.** On a Colab A100 40 GB, gpt-oss-20b (bf16, no MXFP4 kernels) takes several seconds per decision
+  prefix, and the planned sweep (60 held-out prefixes × 5 strengths × vaccine + 3 random directions) would
+  take about 2.5 hours.
+- **Change.** The sweep uses 40 held-out prefixes, strengths {0, 1, 2, 4} and 2 random control directions.
+  The comparison (vaccine vs random directions, dose-response, utility check) is unchanged.
+- **Also.** Activations are saved to Drive in chunks of 50 with a progress counter, so a disconnect does not
+  lose them.
+
 ## 2026-11-21 - exp_001 extended to two non-OpenAI model families (after the first results)
 - **Why.** The first pass of exp_001 used three OpenAI models (gpt-oss-20b, gpt-oss-120b, gpt-5-nano), so
   it could not say whether contagion is specific to one vendor's models. Two models from other families,
