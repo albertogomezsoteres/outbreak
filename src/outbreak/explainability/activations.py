@@ -33,9 +33,14 @@ def load_model(model_id: str, *, dtype: str = "bfloat16", device_map: str = "aut
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     tok = AutoTokenizer.from_pretrained(model_id)
-    model = AutoModelForCausalLM.from_pretrained(
-        model_id, torch_dtype=getattr(torch, dtype), device_map=device_map
-    )
+    try:  # transformers >= 4.56 / 5.x name the argument `dtype`
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id, dtype=getattr(torch, dtype), device_map=device_map
+        )
+    except TypeError:  # older releases only accept `torch_dtype`
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id, torch_dtype=getattr(torch, dtype), device_map=device_map
+        )
     model.eval()
     n_layers = int(getattr(model.config, "num_hidden_layers", getattr(model.config, "n_layer", 0)))
     device = str(next(model.parameters()).device)
@@ -64,7 +69,7 @@ def render(
     tools: Sequence[dict[str, Any]] | None = None,
     add_generation_prompt: bool = True,
 ) -> str:
-    msgs = [_normalize(m) for m in messages]
+    msgs = _one_call_per_turn([_normalize(m) for m in messages])
     # Some templates (e.g. gpt-oss harmony) name tool results after the function that produced them.
     names = {c["id"]: c["function"]["name"] for m in msgs for c in m.get("tool_calls") or []}
     for m in msgs:
@@ -80,6 +85,21 @@ def render(
             )
         )
     return _fallback_render(msgs, add_generation_prompt)
+
+
+def _one_call_per_turn(msgs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Split assistant turns that carry several tool calls into consecutive single-call turns: some
+    templates (gpt-oss harmony) refuse multiple calls per message. The tool results already follow
+    in order, so the conversation is unchanged."""
+    out: list[dict[str, Any]] = []
+    for m in msgs:
+        calls = m.get("tool_calls") or []
+        if m.get("role") == "assistant" and len(calls) > 1:
+            out.append({**m, "tool_calls": [calls[0]]})
+            out.extend({"role": "assistant", "content": "", "tool_calls": [c]} for c in calls[1:])
+        else:
+            out.append(m)
+    return out
 
 
 def _normalize(m: dict[str, Any]) -> dict[str, Any]:
@@ -105,16 +125,36 @@ def hidden_states(
     position: str = "last",
     last_k: int = 8,
     batch_size: int = 1,
-    max_length: int = 16_384,
+    max_length: int = 32_768,
 ) -> dict[int, np.ndarray]:
     """Residual-stream activations (output of block ``l``; index 0 = embeddings) at the decision point.
 
     ``position='last'`` takes the final prefix token; ``'mean_last_k'`` averages the last ``k`` tokens.
     Returns ``{layer: array[n_texts, d_model]}`` in float32.
     """
-    import torch
 
     out: dict[int, list[np.ndarray]] = {layer: [] for layer in layers}
+    tok = lm.tokenizer
+    # Truncate from the left: the decision point is the *last* token and must never be cut.
+    side, tok.truncation_side = getattr(tok, "truncation_side", "right"), "left"
+    try:
+        return _hidden_states(lm, texts, layers, out, position, last_k, batch_size, max_length)
+    finally:
+        tok.truncation_side = side
+
+
+def _hidden_states(
+    lm: LoadedModel,
+    texts: Sequence[str],
+    layers: Sequence[int],
+    out: dict[int, list[np.ndarray]],
+    position: str,
+    last_k: int,
+    batch_size: int,
+    max_length: int,
+) -> dict[int, np.ndarray]:
+    import torch
+
     tok = lm.tokenizer
     for i in range(0, len(texts), batch_size):
         batch = list(texts[i : i + batch_size])

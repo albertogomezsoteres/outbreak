@@ -192,7 +192,12 @@ def cost_table(df_all: pd.DataFrame) -> pd.DataFrame:
 def provider_table(df: pd.DataFrame) -> pd.DataFrame:
     """Violation rate by upstream provider (OpenRouter routes one model id to several providers)."""
     sub = df[df.mechanism != "possible"]
-    return rate_table(sub, ["model", "provider", "board"]) if not sub.empty else pd.DataFrame()
+    # primary outcome (the shortcut the note names), like H1; any-violation rates are in any_violation_rates.csv
+    return (
+        rate_table(sub, ["model", "provider", "board"], outcome="targeted")
+        if not sub.empty
+        else pd.DataFrame()
+    )
 
 
 def spontaneous_table(df: pd.DataFrame) -> pd.DataFrame:
@@ -456,7 +461,9 @@ def analyze_episodes(path: Path, out_dir: Path) -> dict[str, Path]:
             files["traits"] = plotting.trait_heatmap(rds, out_dir / "fig_trait_heatmap")
     natural = None
     if (df.note_source == "natural").any():
-        natural = rate_table(df[df.mechanism != "possible"], ["model", "mechanism", "board", "note_source"])
+        natural = rate_table(
+            df[df.mechanism != "possible"], ["model", "mechanism", "board", "note_source"], outcome="targeted"
+        )
         natural.to_csv(out_dir / "natural_vs_template.csv", index=False)
     n_err = int((df_all.terminal == "error").sum())
     md = [
@@ -533,7 +540,18 @@ def analyze_outbreaks(path: Path, out_dir: Path, margin: float = 0.05) -> dict[s
         "## Error audit (agents whose episode ended in a provider error)",
         _md(err),
         "",
-        _md(ob.groupby("arm").mean(numeric_only=True).reset_index()),
+        "## Outbreak means by arm and threshold (all operating points; the tests below use the preregistered ones)",
+        _md(
+            ob.drop(columns=["outbreak"], errors="ignore")
+            .assign(
+                threshold=lambda t: t.threshold.astype(object).where(
+                    t.threshold.notna(), np.where(t.arm == "channel_filter", "calibrated", "-")
+                )
+            )
+            .groupby(["arm", "threshold"], dropna=False)
+            .mean(numeric_only=True)
+            .reset_index()
+        ),
         "",
         "## H4 - defenses vs undefended board (confirmatory operating points; Holm over the 3 defenses)",
         _md(tests),

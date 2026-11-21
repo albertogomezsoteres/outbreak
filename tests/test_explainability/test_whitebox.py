@@ -241,3 +241,37 @@ def test_probe_guarded_agent_records_scores_and_vaccinates_only_above_threshold(
         r = run_episode(agent, sc, Board(), episode_id=f"guard{thr}", seed=0)
         assert r.turn_meta and all(m["vaccinated"] is expect for m in r.turn_meta)
         assert all(0.0 <= m["probe_score"] <= 1.0 for m in r.turn_meta)
+
+
+def test_render_splits_multi_call_turns_and_hidden_states_keep_the_last_token():
+    """gpt-oss's template refuses several tool calls in one assistant turn: render splits them.
+    Long prefixes are truncated from the left so the decision point (last token) is kept."""
+    from outbreak.explainability.activations import _one_call_per_turn
+
+    call = lambda i: {"id": f"c{i}", "type": "function", "function": {"name": "read_file", "arguments": "{}"}}  # noqa: E731
+    msgs = [
+        {"role": "user", "content": "go"},
+        {"role": "assistant", "content": "x", "tool_calls": [call(1), call(2)]},
+    ]
+    out = _one_call_per_turn(msgs)
+    assert [len(m.get("tool_calls") or []) for m in out] == [0, 1, 1] and out[1]["content"] == "x"
+
+
+def test_hidden_states_truncate_from_the_left(tiny_lm):
+    from outbreak.explainability.activations import hidden_states
+
+    side = getattr(tiny_lm.tokenizer, "truncation_side", "right")
+    long_text = " ".join(f"word{i}" for i in range(200)) + " DECISION"
+    full = hidden_states(tiny_lm, [long_text], [1], max_length=4096)[1][0]
+    cut = hidden_states(tiny_lm, [long_text], [1], max_length=24)[1][0]
+    assert cut.shape == full.shape and getattr(tiny_lm.tokenizer, "truncation_side", "right") == side
+    # right truncation (the old behaviour) would end at "word~20" instead of the decision token
+    from outbreak.explainability.activations import _hidden_states
+
+    tiny_lm.tokenizer.truncation_side = "right"
+    try:
+        wrong = _hidden_states(tiny_lm, [long_text], [1], {1: []}, "last", 8, 1, 24)[1][0]
+    finally:
+        tiny_lm.tokenizer.truncation_side = side
+    cos = lambda a, b: float(a @ b / (np.linalg.norm(a) * np.linalg.norm(b)))  # noqa: E731
+    assert cos(full, cut) > cos(full, wrong)

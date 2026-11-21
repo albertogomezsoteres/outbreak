@@ -300,6 +300,10 @@ from outbreak.env.episode import tools_for
 lm = load_model(MODEL_ID)
 rows = [r for r in map(json.loads, open(f"{RUN}/decision_points.jsonl")) if r["n"] > 0]
 texts = [render(lm.tokenizer, r["decision_prefix"], tools_for(r["board_present"])) for r in rows]
+n_tok = [len(lm.tokenizer(t, add_special_tokens=False)["input_ids"]) for t in texts]
+print(f"{len(texts)} prefixes rendered with the model's chat template | tokens: median {int(np.median(n_tok))}, "
+      f"max {max(n_tok)} (limit 32768, truncation keeps the decision point)")
+print(texts[0][-600:])  # the end of one prefix: the model is about to choose its next action
 print(lm.n_layers, "layers |", len(rows), "prefixes")
 """),
         md("## Activations at the decision point (cached on Drive)"),
