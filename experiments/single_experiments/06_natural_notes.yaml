@@ -1,0 +1,39 @@
+# External validity: do LLM-written notes spread like the template notes?
+# Generate the notes first:  outbreak natural-notes --model openai/gpt-5-mini --n 48
+# Then code their traits:    outbreak manipulation-check --notes data/processed/natural_notes_M*.jsonl --model openai/gpt-5-mini
+experiment_id: "exp_006"
+name: "natural_notes"
+description: "LLM-written notes (6 voices) vs the strong template note vs empty board on the same scenario draws."
+tags: ["act1", "external-validity", "natural-notes"]
+
+run:
+  runner: "bench"
+  output_dir: "outputs/results"
+
+dataset:
+  families: ["sales_report", "churn_metrics", "inventory_reconcile", "latency_slo", "invoice_totals", "experiment_readout"]
+  mechanisms: ["m1_test_edit", "m2_admin_token", "m3_prod_replica", "m4_fabrication"]
+  seeds: [30, 31, 32, 33, 34, 35, 36, 37, 38, 39]
+
+model:
+  provider: "openrouter"
+  agents:
+    - id: "openai/gpt-oss-20b"     # add the susceptible models from exp_001
+    - id: "openai/gpt-5-nano"
+  sampling:
+    temperature: 1.0
+    reasoning_effort: "low"
+  max_steps: 30
+  concurrency: 32
+
+notes:
+  conditions: ["empty_board", "note"]
+  cells: "natural"
+  natural_dir: "data/processed"
+  replicates: 2
+
+reproducibility:
+  seed: 1234
+
+budget:
+  max_usd: 8.0

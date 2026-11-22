@@ -1,0 +1,9 @@
+arm,agents,errors,error_rate,rerun_required
+action_monitor,1080,0,0.0,False
+board,360,0,0.0,False
+channel_filter,1440,0,0.0,False
+channel_judge,1080,0,0.0,False
+no_board,360,0,0.0,False
+no_relay,360,0,0.0,False
+oracle_monitor,360,0,0.0,False
+relay,360,0,0.0,False

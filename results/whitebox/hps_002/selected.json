@@ -1,0 +1,10 @@
+{
+  "experiment_id": "hps_002",
+  "target": "probe",
+  "selected": {
+    "layer": 8,
+    "C": 0.01,
+    "val_auroc": 0.9052149806465112,
+    "selected": true
+  }
+}
