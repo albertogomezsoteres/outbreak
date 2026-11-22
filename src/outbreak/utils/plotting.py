@@ -1,10 +1,10 @@
-"""Matplotlib figures for the report and the poster.
+"""Matplotlib figures for the analysis reports.
 
 Visual rules (one system across every figure): categorical hues in a fixed order (never cycled),
 one-hue sequential ramp for magnitudes, blue<->red diverging ramp with a neutral gray midpoint for
 signed effects, thin marks, recessive grid, no dual axes, legends whenever there are >= 2 series,
 text in ink colours (never in series colours). Every plotted number is also written to CSV next to the
-figure so the poster is backed by a table.
+figure so every chart is backed by a table.
 """
 
 from __future__ import annotations

@@ -17,7 +17,6 @@ power          Monte-Carlo power for the planned sample sizes, from the pilot ra
 pilot          reproduce the pilot table from the checksummed raw logs
 screen         list tool-capable OpenRouter models under a price cap (needs network)
 export-demo    rebuild demo/data.json and demo/index.html from the finished runs and the trained filter
-poster         render the 36x24 in poster (HTML + PDF) from poster/poster.html and demo/data.json
 serve          start the filter scoring API (FastAPI)
 """
 
@@ -487,17 +486,6 @@ def cmd_export_demo(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_poster(args: argparse.Namespace) -> int:
-    from outbreak.pipeline.poster import build
-
-    res = build(Path(args.data), Path(args.poster_dir), chrome=args.chrome)
-    print(f"html: {res['html']}")
-    print(
-        f"pdf:  {res['pdf'] or 'install playwright, or open the HTML in Chrome and print to PDF (36 x 24 in)'}"
-    )
-    return 0
-
-
 def cmd_serve(args: argparse.Namespace) -> int:
     import uvicorn
 
@@ -611,12 +599,6 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--results", default="outputs/results")
     s.add_argument("--trained", default="models/trained")
     s.set_defaults(func=cmd_export_demo)
-
-    s = sub.add_parser("poster", help="render the 36x24 in poster (HTML + PDF) from demo/data.json")
-    s.add_argument("--data", default="demo/data.json")
-    s.add_argument("--poster-dir", default="poster")
-    s.add_argument("--chrome", default=None, help="path to a Chrome/Chromium binary for Playwright")
-    s.set_defaults(func=cmd_poster)
 
     s = sub.add_parser("serve", help="serve the channel filter over HTTP")
     s.add_argument("--filter", default="models/trained/channel_filter.joblib")

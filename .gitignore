@@ -39,7 +39,3 @@ wandb/
 # OS
 .DS_Store
 
-# Generated poster build (rebuild with `outbreak poster`); only the print-ready PDF is kept
-!poster/build/
-poster/build/*
-!poster/build/outbreak_poster.pdf

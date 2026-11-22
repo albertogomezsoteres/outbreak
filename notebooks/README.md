@@ -9,8 +9,8 @@
 | [`02_why_it_spreads`](colab/02_why_it_spreads.ipynb) | **Act 1b:** which note traits make it contagious? Natural notes, manipulation check (exp_002, exp_006) | CPU · 5–6 h | – |
 | [`03_where_to_stop_it`](colab/03_where_to_stop_it.ipynb) | **Act 4:** filter vs LLM judge; outbreaks under 6 defenses (exp_004) | CPU · 3–4 h | 02 |
 | [`04_whitebox_dataset`](colab/04_whitebox_dataset.ipynb) | **Act 2 input:** 720 decision points with k/n labels (exp_003) | CPU · 3–4 h | – |
-| [`05_probe_and_vaccine_gpu`](colab/05_probe_and_vaccine_gpu.ipynb) | **Acts 2–3:** probe and vaccine on gpt-oss-20b; closed-loop episodes | GPU · 3–4 h | 04 |
-| [`06_results`](colab/06_results.ipynb) | Every table and figure; freezes `results/`; rebuilds the demo and poster | CPU · 5 min | all |
+| [`05_probe_and_vaccine_gpu`](colab/05_probe_and_vaccine_gpu.ipynb) | **Acts 2–3:** probe and vaccine on gpt-oss-20b (closed loop optional) | GPU · 3–4 h | 04 |
+| [`06_results`](colab/06_results.ipynb) | Every table and figure; freezes `results/`; rebuilds the demo | CPU · 5 min | all |
 
 **Run them in parallel.** Each experiment has its own LLM cache, and results go to Google Drive, so the
 sessions never share a database file.

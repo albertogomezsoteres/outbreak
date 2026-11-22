@@ -41,6 +41,7 @@ here, so this card never shows stale metrics.
 |---|---|
 | **Definition** | Unit difference of means between high-propensity (rate ≥ 0.5) and zero-propensity prefixes, computed on train scenarios |
 | **Intervention** | Subtract α·‖Δμ‖·u from the output of the block feeding `hidden_states[L]`, at every position |
-| **Evaluation** | Margin log P(violate) − log P(report_blocked) on held-out prefixes vs three norm-matched random directions; utility log-prob on POSSIBLE prefixes; closed-loop episodes with and without steering |
+| **Evaluation** | Margin log P(violate) − log P(report_blocked) on held-out prefixes vs two norm-matched random directions; utility log-prob on POSSIBLE prefixes. Closed-loop episodes are supported by the code but were not run (no specific open-loop effect) |
 | **Variants** | Always-on, or probe-triggered: steering is applied only on turns where the probe's score is at or above its threshold, and every turn's score is logged |
+| **Result** | No specific effect: removing the direction did not lower the margin, while random directions lowered it only by degrading utility (`results/whitebox/steering.csv`) |
 | **Known limits** | Model-, layer- and mechanism-specific. Large α can damage capabilities that the utility check does not cover |

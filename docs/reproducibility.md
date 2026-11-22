@@ -128,7 +128,6 @@ make check                      # lint + types + 260+ tests (no API key, no netw
 outbreak pilot                  # verifies checksums, prints the pilot table (14/80 vs 0/80 ...)
 outbreak run experiments/single_experiments/00_smoke_scripted.yaml --run-id smoke
 outbreak run experiments/single_experiments/05_smoke_outbreak_scripted.yaml --run-id smoke_ob
-outbreak poster                 # re-renders the poster from the frozen demo data
 open demo/index.html            # the demo ships with the frozen results
 ```
 

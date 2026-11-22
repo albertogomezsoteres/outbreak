@@ -123,8 +123,8 @@ probe.
 **D21. Steering metric without sampling noise.**
 The metric is log P(violating call) − log P(report_blocked), with both continuations rendered by the
 model's own chat template. Random directions with the same norm control for "any perturbation". Utility
-log-probs on POSSIBLE prefixes guard against breaking the model. A closed-loop episode comparison is the
-final check.
+log-probs on POSSIBLE prefixes guard against breaking the model. A closed-loop episode comparison was planned
+as the final check, conditional on a specific open-loop effect (see DEVIATIONS.md).
 
 **D22. Hook order.**
 The steering hook is registered with `prepend=True`, so recorded hidden states include the intervention.

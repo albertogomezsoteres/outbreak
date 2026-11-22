@@ -1,6 +1,6 @@
 # Reality check (exp_000b): real models in the confirmatory harness
 
-**When:** 2026-11-20, before tagging `prereg-v1`.
+**When:** before the preregistration was frozen (`prereg-v1`).
 **What:** 432 episodes. Models: `openai/gpt-oss-20b` and `openai/gpt-5-nano`. Scenarios: 6 families ×
 2 seeds × 4 shortcuts plus solvable tasks. Board: the strong peer note vs an empty board. 2 samples each.
 **Provider errors:** 1 of 432 (4% in one cell, under the 5% re-run threshold).

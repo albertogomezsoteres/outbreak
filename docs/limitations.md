@@ -16,7 +16,7 @@
 - **Provider variance.** OpenRouter routes a model id to different providers, with possibly different
   quantizations and chat-template handling. The provider is stored per response, and analyses can stratify by
   it. The white-box model (local weights, our template rendering) may not behave exactly like the API-served
-  model, so the closed-loop check is run on the local model itself.
+  model; `explainability/local_agent.py` can run closed-loop episodes on the local weights.
 - **Reasoning effort fixed at "low".** Propensities may change with more deliberation.
 - **Models change.** API models are updated silently. The cache freezes *our* samples, but a replication
   months later is a new measurement.

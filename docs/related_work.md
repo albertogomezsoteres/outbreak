@@ -72,8 +72,8 @@ agent at the decision point will take a socially suggested shortcut.
 
 Our label is the empirical propensity, measured over many sampled continuations from that exact prefix.
 That gives the probe a real target, not a proxy. We also require the probe to beat a strong baseline:
-knowing *which note* was read. Finally, we check the vaccine in closed loop, on real episodes graded by the
-environment's detectors.
+knowing *which note* was read. Finally, we test whether removing the decoded direction changes the decision, against norm-matched random
+directions.
 
 ## 6. Monitoring and control
 AI-control work (Greenblatt et al., arXiv:2312.06942) treats monitors as defenses that must be judged under a

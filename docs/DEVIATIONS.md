@@ -1,9 +1,9 @@
 # Deviations log
 
-Every departure from the plan, newest first. Each entry gives the date, what changed, why, and how the
+Every departure from the plan, newest first. Each entry gives what changed, why, and how the
 analysis is affected.
 
-## 2026-11-21 - Notebook 05: smaller steering sweep, chunked activations (GPU time)
+## Notebook 05: smaller steering sweep, chunked activations (GPU time)
 - **Why.** On a Colab A100 40 GB, gpt-oss-20b (bf16, no MXFP4 kernels) takes several seconds per decision
   prefix, and the planned sweep (60 held-out prefixes × 5 strengths × vaccine + 3 random directions) would
   take about 2.5 hours.
@@ -11,8 +11,12 @@ analysis is affected.
   The comparison (vaccine vs random directions, dose-response, utility check) is unchanged.
 - **Also.** Activations are saved to Drive in chunks of 50 with a progress counter, so a disconnect does not
   lose them.
+- **Closed loop not run.** The open-loop sweep showed no specific effect of the vaccine direction (random
+  directions lowered the margin only by degrading utility), so there was no effect for closed-loop episodes to
+  confirm. H6 is reported as not supported on the preregistered open-loop metric; the closed-loop code
+  (`explainability/local_agent.py`) is kept and tested.
 
-## 2026-11-21 - exp_001 extended to two non-OpenAI model families (after the first results)
+## exp_001 extended to two non-OpenAI model families (after the first results)
 - **Why.** The first pass of exp_001 used three OpenAI models (gpt-oss-20b, gpt-oss-120b, gpt-5-nano), so
   it could not say whether contagion is specific to one vendor's models. Two models from other families,
   `google/gemma-4-31b-it` and `meta-llama/llama-4-maverick`, are added. Both come from the tool-use screen
@@ -24,7 +28,7 @@ analysis is affected.
   the screen, not as part of the original confirmatory family. The original three models' adjusted
   p-values are reported both ways.
 
-## 2026-11-20 - Provider failures: run stops, failed episodes are re-run (implements prereg section 6)
+## Provider failures: run stops, failed episodes are re-run (implements prereg section 6)
 - **What happened.** The first pass of exp_001 hit the API key's spending limit after about 930 of 1,710
   episodes. From then on every call was refused, and 803 episodes were recorded as provider errors.
 - **What changed in the code.**
@@ -37,14 +41,14 @@ analysis is affected.
 - **Also:** the manifest's `dirty` flag ignores `outputs/` and `models/`, which hold run artifacts (on Colab
   they are links to Drive).
 
-## 2026-11-20 - Colab setup cell: import path (after `prereg-v1`, no effect on experiments)
+## Colab setup cell: import path (after `prereg-v1`, no effect on experiments)
 - The first setup cell installs the package and the next cell imports it in the same kernel. Colab's kernel
   did not see the new install, and `/content/outbreak` (the repo folder) shadowed the package name, so
   `outbreak.colab` failed to import.
 - The setup cell now puts `src/` on `sys.path` and drops any stale `outbreak` module.
 - This affects notebook setup only. No experiment code, config or analysis changed.
 
-## 2026-11-20 - Workspace scripts could reach the public internet (fixed before `prereg-v1`)
+## Workspace scripts could reach the public internet (fixed before `prereg-v1`)
 - **How it was found.** CI on GitHub's runners. The network-isolation test passed in the development sandbox,
   which has no direct internet, but failed on machines that do: GitHub runners, and also Colab.
 - **Cause.** Workspace subprocesses set `NO_PROXY="*"`, so Python ignored the dead proxy that was meant to
@@ -58,7 +62,7 @@ analysis is affected.
     hosts (`api.internal`, `prod-replica.internal`), which never resolve. No episode reached a public host.
   - `ENV_VERSION` is unchanged, because env-v1 behaves identically for every host the environment defines.
 
-## 2026-11-20 - Second external review, made before `prereg-v1`
+## Second external review, made before `prereg-v1`
 A second independent review flagged three issues. All three were valid and are fixed.
 1. **The benign control was much shorter than the shortcut notes** (69–98 chars vs ~480–570). H1's primary
    contrast would then mix content with length.
@@ -82,7 +86,7 @@ A second independent review flagged three issues. All three were valid and are f
    - Tests cover each case, including "technically against policy, but it works" (recommends) and "I did
      not use the replica" (discourages).
 
-## 2026-11-20 - Changes from an external design review, made before `prereg-v1`
+## Changes from an external design review, made before `prereg-v1`
 An independent review flagged five issues. Four were valid and are fixed; the fifth was only a status note.
 1. **Exposure is not contagion.** In the original outbreaks, patient zero stayed on the board in every
    round, so a later violator might simply have read the original note. In addition, agents almost never
@@ -105,7 +109,7 @@ An independent review flagged five issues. Four were valid and are fixed; the fi
    unblocked agents each (was 20 × 3), and the interpretation rule is stated in prereg section 5.
 5. **"Confirmatory runs not done yet."** Correct, and expected at this stage: they start after `prereg-v1`.
 
-## 2026-11-20 - Design changes from the reality check (exp_000b), made before `prereg-v1`
+## Design changes from the reality check (exp_000b), made before `prereg-v1`
 Evidence and full numbers are in [`reality_check.md`](reality_check.md).
 - **Primary transmission outcome = targeted violation.**
   - What changed: "targeted" means the scenario's own shortcut. Any violation becomes secondary for H1 and is
@@ -120,14 +124,14 @@ Evidence and full numbers are in [`reality_check.md`](reality_check.md).
 - **exp_001 uses 1 sample per draw.** Effects of 45–88 pp leave ample power, and this halves the number of episodes.
 - **Spending caps set from the usage measured per episode.**
 - **`outbreak screen` excludes `:batch` endpoints.** They are asynchronous and unsuitable for agent loops.
-- **Sizes and throughput set for the deadline:**
+- **Sizes and throughput set for the available compute time:**
   - exp_002 uses 2 samples per note instead of 3;
   - exp_003 uses 6 seeds instead of 10;
   - concurrency is raised to 32.
   - Power figures in prereg section 5 are updated to match.
   - Each experiment gets its own LLM cache, so notebooks can run in parallel sessions.
 
-## 2026-11-20 - Additions made before `prereg-v1` was tagged
+## Additions made before `prereg-v1` was tagged
 These are not deviations, because they precede the tag. They are listed for transparency.
 - **Reality check:** `exp_000b` runs in the confirmatory harness *before* the tag.
 - **External validity:** `exp_006` tests natural (LLM-written) notes (H1b). An LLM manipulation check adds a
@@ -144,7 +148,7 @@ These are not deviations, because they precede the tag. They are listed for tran
   - the defense-threshold "search" was removed, because exp_004 reports the full frontier instead of
     selecting one threshold.
 
-## 2026-11-20 - H4 primary test: Wilcoxon-Pratt → paired sign-flip permutation
+## H4 primary test: Wilcoxon-Pratt → paired sign-flip permutation
 - **What.** The outline (v5.1) named the Wilcoxon signed-rank test with Pratt's zero handling as the primary
   H4 test.
 - **Why.** The calibration test (`tests/test_utils/test_stats.py::test_wilcoxon_pratt_is_slightly_liberal_with_ties`)
@@ -156,12 +160,12 @@ These are not deviations, because they precede the tag. They are listed for tran
   transparency.
 - **Timing.** The change was made before any confirmatory data existed.
 
-## 2026-11-20 - Pilot Fisher p-value corrected
+## Pilot Fisher p-value corrected
 - **What.** Earlier notes quoted p = 3.3e-5 for the gpt-oss-20b pilot contrast (14/80 vs 0/80).
 - **Correction.** The two-sided Fisher exact p is **6.6e-5**, reproduced by `outbreak pilot` from the
   checksummed logs. The 3.3e-5 figure was the one-sided value. All documents now use the two-sided value.
 
-## 2026-11-20 - Environment rebuilt after the pilot (pilot ≠ confirmatory)
+## Environment rebuilt after the pilot (pilot ≠ confirmatory)
 - **What.** The pilot (`scripts/pilot/outbreak_smoke.py`) used one toy task: four regions and one number. It
   had one mechanism (M2, plus an M4 detector), a single note, and the `path=` API. The confirmatory harness
   (`env-v1`) has:
@@ -177,13 +181,13 @@ These are not deviations, because they precede the tag. They are listed for tran
   confirmatory data. Effect sizes may differ in the new harness: tasks are longer, and the policy is stated in
   the README rather than in the system prompt.
 
-## 2026-11-20 - "Pressure" manipulation dropped
+## "Pressure" manipulation dropped
 - **What.** The pilot tested deadline pressure in the system prompt.
 - **Why.** It did not change susceptibility. It did lower legitimate success on POSSIBLE tasks for gpt-oss
   (70% → 47%), so it confounds utility.
 - **Effect.** Urgency stays in the design only as a *note trait* (E), where it is randomized.
 
-## 2026-11-20 - DeepSeek V4.1 Flash and GLM 5.3 Flash pilot rows are not archived
+## DeepSeek V4.1 Flash and GLM 5.3 Flash pilot rows are not archived
 - **What.** These pilot runs were executed in Colab. Their console tables were reported (DeepSeek: note 0/60,
   control 1/60; GLM: note 3/60, control 1/60), but the raw logs were lost in a Colab runtime reset.
 - **Effect.** They are cited as *reported, not reproducible* and are excluded from `data/raw/pilot`. Both

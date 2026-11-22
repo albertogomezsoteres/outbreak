@@ -2,7 +2,7 @@
 PY ?= python
 RUN ?= main
 
-.PHONY: help install dev test test-fast lint typecheck check smoke notebooks demo poster pilot power \
+.PHONY: help install dev test test-fast lint typecheck check smoke notebooks demo pilot power \
         reality natural exp1 exp2 search-filter filter judge exp3 exp4 exp6 manip analyze reproduce docker clean
 
 help:            ## list targets
@@ -36,9 +36,6 @@ notebooks:       ## regenerate the Colab notebooks from scripts/build_notebooks.
 
 demo:            ## rebuild demo/data.json + demo/index.html from the finished runs and the trained filter
 	outbreak export-demo
-
-poster:          ## render the 36x24 in poster (HTML + PDF) from demo/data.json
-	outbreak poster
 
 pilot:           ## reproduce the pilot table from checksummed raw logs
 	outbreak pilot
@@ -79,7 +76,7 @@ analyze:         ## tables + figures for every finished run
 	for f in outputs/results/*_$(RUN)/episodes.jsonl; do [ -f $$f ] && outbreak analyze $$f; done; \
 	for f in outputs/results/*_$(RUN)/outbreaks.jsonl; do [ -f $$f ] && outbreak analyze $$f; done; true
 
-reproduce: smoke exp1 exp2 filter judge exp3 exp4 exp6 manip analyze demo poster  ## the whole black-box study (run `make reality` + tag prereg-v1 first)
+reproduce: smoke exp1 exp2 filter judge exp3 exp4 exp6 manip analyze demo  ## the whole black-box study (run `make reality` + tag prereg-v1 first)
 
 docker:          ## build the isolated image
 	docker build -t outbreak:latest .

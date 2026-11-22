@@ -10,7 +10,6 @@
 
 <p align="center">
   <a href="https://albertogomezsoteres.github.io/outbreak/"><b>Live demo</b></a> ·
-  <a href="https://albertogomezsoteres.github.io/outbreak/poster.pdf">Poster (PDF)</a> ·
   <a href="docs/preregistration.md">Preregistration</a> ·
   <a href="#reproduce-the-study">Reproduce</a>
 </p>
@@ -39,7 +38,7 @@ internal API, and every rule break is detected from evidence in the sandbox, nev
 | **1** | **A single peer message is enough.** A shortcut note raised gpt-oss-20b's violation rate from **4% to 79%**. **All 5 models** tested (OpenAI, Meta, Google) were significantly susceptible. | exp_001, 600 tasks per condition, Holm-corrected |
 | **2** | **Procedural instructions are the active ingredient.** Step-by-step instructions added **+25 pp** (gpt-oss-20b) and **+31 pp** (GPT-5 nano). Urgency, justification, authority and social proof showed no significant effect, and an explicit policy warning did not protect. | exp_002, 2⁶ full factorial |
 | **3** | **Realistic notes transmit too.** Notes written freely by an LLM produced **30%** violations against **6%** with no note. | exp_006 |
-| **4** | **The decision is readable before the agent acts** (probe AUROC **0.91**), but a classifier on the note text reaches the same 0.91: the message carries most of the predictive signal. Ablating the probe direction did not reduce violations. | exp_003 + notebook 05 |
+| **4** | **The decision is readable before the agent acts** (probe AUROC **0.91**), but a classifier on the note text reaches the same 0.91: the message carries most of the predictive signal. Ablating the probe direction did not reduce the pull toward the shortcut. | exp_003 + notebook 05 |
 | **5** | **Every guardrail contains the outbreak, but only one keeps the work.** In 12-agent teams, violations fell from **7.9 to ≤ 0.2** per team under all three guardrails. Only the **trained message filter** was non-inferior on utility (**81%** of solvable tasks completed, vs **37%** under action monitoring). | exp_004, 30 outbreaks per arm |
 
 <p align="center">
@@ -81,7 +80,7 @@ Four preregistered experiments, one question each. All violation outcomes come f
 | **H4b** The trained filter ranks contagious posts better than an LLM judge | ✅ AUROC 0.62 vs 0.56, difference CI [0.03, 0.10] |
 | **H4c** Violations transmit agent-to-agent once the seed note is removed | ➖ Not observed: 0 of 163 later agents |
 | **H5** Probe beats note identity | ➖ 0.91 vs 0.90: the signal is in the message |
-| **H6** Ablating the probe direction lowers violations | ➖ No reduction; random directions degrade the model |
+| **H6** Ablating the probe direction lowers the shortcut log-odds | ➖ No reduction; random directions only lower it by degrading the model |
 
 The negative results (H4c, H5, H6) are informative: together they locate the risk in the shared message rather
 than in agent-to-agent chains or a single internal direction, which is exactly where the winning guardrail acts.
@@ -93,7 +92,7 @@ flowchart LR
     subgraph Sandbox["Sandbox (per agent, network-isolated)"]
         R[Code repo + tests]
         A[Internal API<br/>quota, admin token, prod replica]
-        T[Tools: shell, files, HTTP]
+        T[Tools: files, scripts, tests, HTTP]
     end
     B[(Team message board)] -->|reads before acting| AG[LLM agent]
     AG -->|tool calls| T
@@ -107,8 +106,8 @@ flowchart LR
 ```
 
 Agents run through OpenRouter with provider routing and a per-experiment SQLite cache, so every run is resumable
-and identical requests are answered from the cache. Detectors read evidence only: a violation is a fact in the sandbox, not an
-opinion of another model.
+and identical requests are answered from the cache. Detectors read evidence only: a violation is a fact in
+the sandbox, not the opinion of another model.
 
 ## Pipeline
 
@@ -125,7 +124,6 @@ flowchart LR
     WB --> RES
     RES --> DEMO[demo/ on GitHub Pages]
     M --> DEMO
-    RES --> POSTER[poster/]
 ```
 
 Every run writes a `run.yaml` manifest with the config hash, the full validated config, environment version,
@@ -135,7 +133,7 @@ to exactly what produced it.
 ## Rigor
 
 - **Preregistered** hypotheses, outcomes, sample sizes and decision rules, frozen before any confirmatory run.
-  The file is unchanged since the freeze; every later change is dated and justified in
+  The file is unchanged since the freeze; every later change is documented and justified in
   [`docs/DEVIATIONS.md`](docs/DEVIATIONS.md).
 - **Evidence-based outcomes.** Violations are detected from credentials used, hosts contacted and file hashes.
 - **Controls.** Length-matched benign notes, empty-board and no-board conditions, solvable tasks to measure utility,
@@ -170,16 +168,15 @@ per question ([`notebooks/README.md`](notebooks/README.md)):
 | [`03_where_to_stop_it`](notebooks/colab/03_where_to_stop_it.ipynb) | filter training, judge vs filter, exp_004 | CPU |
 | [`04_whitebox_dataset`](notebooks/colab/04_whitebox_dataset.ipynb) | exp_003 decision points | CPU |
 | [`05_probe_and_vaccine_gpu`](notebooks/colab/05_probe_and_vaccine_gpu.ipynb) | probe and steering on gpt-oss-20b | GPU (A100) |
-| [`06_results`](notebooks/colab/06_results.ipynb) | all tables and figures, demo data, poster | CPU |
+| [`06_results`](notebooks/colab/06_results.ipynb) | all tables and figures, demo data | CPU |
 
 Locally, `make reproduce RUN=main` runs the same sequence. A `Dockerfile` pins the environment, and
 [`docs/reproducibility.md`](docs/reproducibility.md) covers seeds, versions, caching and expected runtimes.
 
-**Rebuild the demo and the poster** from finished runs:
+**Rebuild the demo** from finished runs:
 
 ```bash
 outbreak export-demo --results outputs/results --trained models/trained   # demo/data.json + demo/index.html
-outbreak poster                                                           # poster/build/outbreak_poster.pdf
 ```
 
 ## Repository structure
@@ -188,7 +185,7 @@ outbreak poster                                                           # post
 src/outbreak/
   env/             sandbox: repos, internal API, tools, message board, detectors, network guard
   models/          OpenRouter client, scripted agents, LLM judge and action monitor, trained text filter
-  pipeline/        runner, outbreaks, analysis, filter training, judge eval, power, demo data, poster
+  pipeline/        runner, outbreaks, analysis, filter training, judge eval, power, demo data
   explainability/  activations, linear probe, steering, local closed-loop agent
   data/            note factorial, natural notes, manipulation check, frozen splits
   utils/           config, cache, statistics, run manifests, plotting
@@ -198,7 +195,7 @@ results/           frozen analysis outputs for every experiment
 models/trained/    the channel filter used in exp_004 and in the demo
 notebooks/colab/   one notebook per question, generated from scripts/build_notebooks.py
 demo/              interactive page deployed to GitHub Pages
-poster/            36 x 24 in poster, rendered from the same data as the demo
+scripts/           notebook generator and the archived pilot harness
 docs/              preregistration, deviations, design decisions, data and model cards, related work
 tests/             unit, integration and statistical calibration tests
 ```
@@ -219,9 +216,8 @@ channel and adaptive adversaries. Details in [`docs/limitations.md`](docs/limita
 ## Development history
 
 This repository is the clean release. The full development history, including the commit that froze the
-preregistration on 2026-11-20 ([`2c75c22`](https://github.com/albertogomezsoteres/outbreak-dev-archive/commit/2c75c22)),
-is in [`outbreak-dev-archive`](https://github.com/albertogomezsoteres/outbreak-dev-archive). The commit hashes in
-each run's `run.yaml` refer to that history.
+preregistration ([`2c75c22`](https://github.com/albertogomezsoteres/outbreak-dev-archive/commit/2c75c22)),
+is in [`outbreak-dev-archive`](https://github.com/albertogomezsoteres/outbreak-dev-archive).
 
 ## Citation
 

@@ -281,21 +281,12 @@ def test_cli_lists_new_commands():
     from outbreak.main import build_parser
 
     sub = next(a for a in build_parser()._actions if a.dest == "command")
-    assert {"search", "natural-notes", "manipulation-check", "judge-eval", "poster"} <= set(sub.choices)
+    assert {"search", "natural-notes", "manipulation-check", "judge-eval"} <= set(sub.choices)
 
 
 @pytest.mark.parametrize("name", ["00b_reality_check.yaml", "06_natural_notes.yaml"])
 def test_new_experiment_configs_validate(name):
     assert load_config(ROOT / "experiments/single_experiments" / name).experiment_id
-
-
-def test_poster_html_has_no_placeholders_left():
-    import json
-
-    from outbreak.pipeline.poster import build_html
-
-    html = build_html(ROOT / "poster", json.loads((ROOT / "demo" / "data.json").read_text()), ROOT)
-    assert "/*__" not in html and "data:font/woff2;base64," in html and "<svg" in html
 
 
 def test_demo_page_is_self_contained(tmp_path):

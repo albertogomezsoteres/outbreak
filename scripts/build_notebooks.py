@@ -11,7 +11,7 @@ can run in parallel Colab sessions: every experiment has its own LLM cache, resu
     03  where to stop it  filter search/train + judge-vs-filter + exp_004        CPU  (after 02)
     04  white-box data    exp_003 + harvest                                      CPU
     05  probe + vaccine   activations, probe, steering, closed loop              GPU  (after 04)
-    06  results           tables, figures, demo, poster, bundle                  CPU  (no API key)
+    06  results           tables, figures, demo, bundle                          CPU  (no API key)
 """
 
 from __future__ import annotations
@@ -112,7 +112,7 @@ NB00 = nb(
         md("## Candidate models (one per family, tool-capable)\nAn episode re-reads ~40-80k prompt tokens."),
         code("!outbreak screen --max-price 2"),
         md(
-            "## Reality check (exp_000b): already run on 2026-11-20 and committed to the repo\n"
+            "## Reality check (exp_000b): already run and committed to the repo\n"
             "These are the frozen results. Re-running is only needed to reproduce them (uncomment the cell after)."
         ),
         code("""
@@ -413,13 +413,13 @@ cl = pd.DataFrame(summary); cl.to_csv(WB / "closed_loop_summary.csv", index=Fals
 NB06 = nb(
     [
         header(
-            "06 · Results: tables, figures, demo and poster",
+            "06 · Results: tables, figures and demo",
             "What did we find? Everything in one place, regenerated from the run folders.",
             "Re-analyses every finished run, freezes the analysis folders into `results/`, rebuilds the interactive "
-            "demo and the poster, and bundles everything for download.",
+            "demo, and bundles everything for download.",
             "CPU · ~5 min",
         ),
-        get_code("api,poster"),
+        get_code("api"),
         setup(need_key=False),
         code("""
 import glob, shutil, os
@@ -440,15 +440,14 @@ for fig in ["results/exp_001/fig_leaderboard.png", "results/exp_002/fig_trait_he
             "results/exp_004/fig_outbreak_growth.png", "results/exp_004/fig_frontier.png"]:
     show_figure(fig)
 """),
-        md("## Demo and poster"),
+        md("## Demo"),
         code("""
 !outbreak export-demo --results outputs/results --trained models/trained
-!outbreak poster
 """),
         md("## Bundle for the repo\nDownload, unzip into the repo, review the diff and commit."),
         code("""
 !cp outputs/results/natural_notes/*.jsonl data/processed/ 2>/dev/null; cp -r outputs/results/exp_003_main/whitebox results/whitebox 2>/dev/null; true
-!zip -qr /content/outbreak_results.zip results data/processed demo poster/build models/trained -x "*.sqlite*" "*.npz"
+!zip -qr /content/outbreak_results.zip results data/processed demo models/trained -x "*.sqlite*" "*.npz"
 from google.colab import files; files.download("/content/outbreak_results.zip")
 """),
     ]

@@ -12,7 +12,6 @@
 | `natural-notes --model ID [--mechanism ...] [--n 48]` | LLM-written peer notes in six voices, with a usability flag | yes |
 | `manipulation-check --notes FILES --model ID` | LLM rater codes the six traits; per-trait accuracy and kappa against the design | yes |
 | `judge-eval EPISODES --judge ID [--filter]` | LLM judge vs trained filter on the same held-out posts: AUROCs, paired difference, benign flag rates | yes |
-| `poster [--data] [--poster-dir] [--chrome]` | 36×24 in poster from `poster/poster.html` and `demo/data.json` (PDF via Playwright) | no |
 | `harvest EPISODES... [--out]` | Unique decision-point prefixes with k/n labels and candidate actions | no |
 | `notes [--mechanism] [--draws] [--seed] [--out]` | Exports the factorial notes | no |
 | `splits [--out] [--n-seeds]` | Writes the frozen scenario splits | no |

@@ -3,7 +3,7 @@ name: pages
 on:
   push:
     branches: [main]
-    paths: ["demo/**", "poster/build/outbreak_poster.pdf", ".github/workflows/pages.yml"]
+    paths: ["demo/**", "assets/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -27,7 +27,6 @@ jobs:
         run: |
           mkdir -p _site
           cp demo/index.html _site/index.html
-          cp poster/build/outbreak_poster.pdf _site/poster.pdf
           cp assets/logo-mark.svg _site/favicon.svg
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5

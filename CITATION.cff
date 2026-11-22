@@ -6,7 +6,6 @@ authors:
     given-names: "Alberto"
     affiliation: "Duke University"
 version: 1.0.0
-date-released: 2026-11-24
 license: MIT
 repository-code: "https://github.com/albertogomezsoteres/outbreak"
 keywords: [ai-safety, multi-agent-systems, llm-agents, explainability, activation-steering, red-teaming]
