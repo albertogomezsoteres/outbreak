@@ -1,0 +1,2 @@
+n_outbreaks,late_targeted_relay,late_blocked_relay,late_targeted_no_relay,late_blocked_no_relay,rate_relay,rate_no_relay,p_transmission,handoff_posts_relay,propagators_relay,discouragers_relay,violators_relay
+30,0,163,0,163,0.0,0.0,1.0,328,53,9,70
