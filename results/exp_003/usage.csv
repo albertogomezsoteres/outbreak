@@ -1,0 +1,2 @@
+model,episodes,api_calls,cache_hits,mean_prompt_tokens,mean_completion_tokens,mean_wall_s,mean_steps
+openai/gpt-oss-20b,5760,38503,104,31859.13420138889,979.3701388888888,20.53444600694445,5.369965277777778
