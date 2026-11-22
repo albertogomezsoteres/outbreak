@@ -1,0 +1,16 @@
+# Grid for the channel filter, selected on the validation split only (test split touched once, by train-filter).
+#   outbreak search experiments/hyperparameter_searches/filter_regularization.yaml \
+#       --episodes outputs/results/exp_002_main/episodes.jsonl
+experiment_id: "hps_001"
+name: "filter_regularization"
+description: "Inverse regularisation C and target false-positive rate for the TF-IDF + logistic channel filter."
+tags: ["filter", "hyperparameters"]
+target: "channel_filter"
+search:
+  method: "grid"
+  selection_metric: "val_auroc"
+  parameters:
+    C: [0.1, 0.3, 1.0, 3.0, 10.0]
+    target_fpr: [0.01, 0.05, 0.10]
+reproducibility:
+  seed: 1234
