@@ -138,6 +138,16 @@ def _boot_mean(x: np.ndarray, n: int = 4000, seed: int = 0) -> tuple[float, floa
     return float(np.quantile(means, 0.025)), float(np.quantile(means, 0.975))
 
 
+def _excerpt(text: str, limit: int = 240) -> str:
+    """A post as the page shows it: whitespace collapsed, cut at a sentence end when it runs long."""
+    text = " ".join(text.split())
+    if len(text) <= limit:
+        return text
+    cut = text[:limit]
+    end = max(cut.rfind(". "), cut.rfind("! "), cut.rfind("? "))
+    return cut[: end + 1] if end > limit // 2 else cut.rsplit(" ", 1)[0] + "…"
+
+
 def _replay(rec: dict[str, Any]) -> dict[str, Any]:
     agents = []
     for a in rec["agents"]:
@@ -154,7 +164,13 @@ def _replay(rec: dict[str, Any]) -> dict[str, Any]:
             }
         )
     posts = [
-        {"author": p["author"], "round": p["round"], "published": p["published"], "seeded": p["seeded"]}
+        {
+            "author": p["author"],
+            "round": p["round"],
+            "published": p["published"],
+            "seeded": p["seeded"],
+            "text": _excerpt(p.get("text", "")),
+        }
         for p in rec["board"]
     ]
     return {
@@ -289,13 +305,23 @@ def filter_block(trained: Path) -> dict[str, Any] | None:
             "x": [round(float(v), 6) for v in f.calibrator.X_thresholds_],
             "y": [round(float(v), 6) for v in f.calibrator.y_thresholds_],
         }
-    return {
+    out: dict[str, Any] = {
         "word": parts["word"],
         "char": parts["char"],
         "intercept": intercept,
         "calibration": cal,
         "threshold": float(f.threshold),
     }
+    report = trained / "channel_filter.report.json"
+    if report.exists():
+        r = json.loads(report.read_text())
+        out["test"] = {
+            "auroc": r["test"]["auroc"],
+            "tpr": r["test"]["tpr_at_threshold"],
+            "benign_fpr": r["benign_fpr_at_threshold"],
+            "n_train": r["n_exposures"]["train"],
+        }
+    return out
 
 
 def build(results: Path, trained: Path) -> dict[str, Any]:
